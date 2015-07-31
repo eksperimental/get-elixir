@@ -1,14 +1,17 @@
 #!/bin/sh
 
+# TODO: add action to add the desired path to path.
+
 APP_NAME="elixir-get"
 APP_VERSION="0.0.1-dev"
-COMMAND="./`basename $0`"
+COMMAND="./get-elixir.sh"
 ELIXIR_CSV_URL="https://raw.githubusercontent.com/elixir-lang/elixir-lang.github.com/master/elixir.csv"
+ELIXIR_RELEASES_URL="https://github.com/elixir-lang/elixir/releases"
 ELIXIR_RELEASE_TAG_URL=""
 ELIXIR_TREE_URL=""
 
 #DEFAULT
-DEFAULT_DEST_DIR="./elixir"
+DEFAULT_DEST_DIR="elixir"
 DEFAULT_VERSION="latest"
 
 #ARGS VARIABLES
@@ -19,64 +22,6 @@ DEST_DIR=""
 
 # FUNCTIONS
 
-sanitize_version() {
-  echo $(printf '%s' "$1" | sed -e 's/^v//g')
-}
-
-sanitize_dest_dir() {
-  echo $(printf '%s' "$1" | sed -e 's@/$@@g')
-}
-
-get_latest_version() {
-  local version
-  version=$(wget -qO- "$ELIXIR_CSV_URL" | sed '2q;d' | cut -d , -f1)
-  if [ "$version" = "" ]; then 
-    echo >&2 "* [ERROR] Latest Elixir version number couldn't be retrieved" &&
-    exit 1
-  else
-    echo "$version"
-  fi
-}
-
-download_source() {
-  local version="$1"
-  local url="https://github.com/elixir-lang/elixir/archive/v${version}.tar.gz"
-  wget -O "v${version}.tar.gz" "${url}" || (
-    echo "* [ERROR] Elixir v${VERSION} could not be downloaded from ${url}" >&2 &&
-    exit 1
-  )
-}
-
-download_precompiled() {
-  local version="$1"
-  local url="https://github.com/elixir-lang/elixir/releases/download/${version}/Precompiled.zip"
-  wget -O Precompiled.zip "${url}" || (
-    echo "* [ERROR] Elixir v${VERSION} could not be downloaded from ${url}" >&2 &&
-    exit 1
-  )
-}
-
-unpack_source() {
-  local version="$1"
-  local dest_dir="$2"
-  tar -xzf v${version}.tar.gz && 
-  mkdir -p ${dest_dir} && 
-  cp -rf elixir-${version}/* ${dest_dir} && 
-  rm -rf elixir-${version}/ || (
-    echo "* [ERROR] \"v${version}.tar.gz\" could not be unpacked to ${dest_dir}" >&2 &&
-    exit 1
-  )
-}
-
-unpack_precompiled() {
-  local dest_dir="$1"
-  mkdir -p ${dest_dir} && 
-  unzip Precompiled.zip -d ${dest_dir} || (
-    echo "* [ERROR] \"Precompiled.zip\" could not be unpacked to ${dest_dir}" >&2 &&
-    exit 1
-  )
-}
-
 short_help() {
   echo "${COMMAND}: missing arguments.
 
@@ -85,14 +30,14 @@ short_help() {
   Example:
   ${COMMAND} unpack source
 
-  Try \`${COMMAND} --help\` for more information."
+  Try \`${COMMAND} help\` for more information."
 }
 
 help() {
   echo "${APP_NAME} version ${VERSION}
 
   Get any released version of the Elixir programming language,
-  without leaving the confort of your command line.
+  without leaving the comfort of your command line.
   http://elixir-lang.org
 
   Usage: ${COMMAND} ACTION PACKAGE_TYPE [VERSION_NUMBER] [DEST_DIR]
@@ -100,6 +45,10 @@ help() {
   Actions:
   download      Downloads the package
   unpack        Downloads the package and unpacks it
+  clean         Removes donwloaded files
+  purge         Removes downloaded files and the default destination
+                directory (${DEFAULT_DEST_DIR}) where files have been
+                extracted to
   version       Prints version
   help          Prints help menu
 
@@ -127,35 +76,145 @@ help() {
   \$ ${COMMAND} unpack precompiled && ${COMMAND} unpack source 
 
   ** For a list of available releases, plesase visit
-     https://github.com/elixir-lang/elixir/releases
-"
+     ${ELIXIR_RELEASES_URL}"
 }
 
+sanitize_version() {
+  printf '%s' "$1" | sed -e 's/^v//g'
+}
+
+sanitize_dest_dir() {
+  printf '%s' "$1" | sed -e 's@/$@@g'
+}
+
+get_latest_version() {
+  local version
+  version=$(curl -s -fL "${ELIXIR_CSV_URL}" | sed '2q;d' | cut -d , -f1)
+  if [ "${version}" = "" ]; then 
+    echo "* [ERROR] Latest Elixir version number couldn't be retrieved from ${ELIXIR_CSV_URL}" >&2
+    exit 1
+  else
+    echo "${version}"
+  fi
+}
+
+download_source() {
+  local version="$1"
+  local url="https://github.com/elixir-lang/elixir/archive/v${version}.tar.gz"
+  echo "* Downloading ${url}"
+  curl -fL -o "v${version}.tar.gz" "${url}"
+  if [ ! -f "v${version}.tar.gz" ]; then
+    echo "* [ERROR] Elixir v${VERSION} could not be downloaded from ${url}" >&2
+    if [ "${VERSION}" != "${DEFAULT_VERSION}" ]; then
+    echo "          Please make sure version number is a valid one, by checking:" >&2
+    echo "          ${ELIXIR_RELEASES_URL}" >&2
+    fi
+    exit 1
+  fi
+}
+
+download_precompiled() {
+  local version="$1"
+  local url="https://github.com/elixir-lang/elixir/releases/download/v${version}/Precompiled.zip"
+  echo "* Downloading ${url}"
+  curl -fL -o Precompiled.zip "${url}"
+  if [ ! -f Precompiled.zip ]; then
+    echo "* [ERROR] Elixir v${VERSION} could not be downloaded from ${url}" >&2
+    if [ "${VERSION}" != "${DEFAULT_VERSION}" ]; then
+    echo "          Please make sure version number is a valid one, by finding it in:" >&2
+    echo "          ${ELIXIR_RELEASES_URL}" >&2
+    fi
+    exit 1
+  fi
+}
+
+unpack_source() {
+  local version="$1"
+  local dest_dir="$2"
+  tar -xzf v${version}.tar.gz && 
+  mkdir -p ${dest_dir} && 
+  cp -rf elixir-${version}/* ${dest_dir} && 
+  rm -rf elixir-${version}/ || (
+    echo "* [ERROR] \"v${version}.tar.gz\" could not be unpacked to ${dest_dir}" >&2
+    echo "          Check the file permissions." >&2
+    exit 1
+  )
+}
+
+unpack_precompiled() {
+  local dest_dir="$1"
+  mkdir -p ${dest_dir} && 
+  unzip -o -q -d ${dest_dir} Precompiled.zip || (
+    echo "* [ERROR] \"Precompiled.zip\" could not be unpacked to ${dest_dir}" >&2
+    echo "          Check the file permissions." >&2
+    exit 1
+  )
+}
+
+purge_downloaded_files() {
+  rm -f Precompiled.zip &&
+  rm -f v*.tar.gz &&
+  rm -f v*.zip || (
+    echo "* [ERROR] Files could not be removed." >&2
+    echo "          Check the file permissions." >&2
+    exit 1
+  )
+}
+
+purge_default_dest_dir() {
+  rm -rf ./${DEFAULT_DEST_DIR} || (
+    echo "* [ERROR] ${DEFAULT_DEST_DIR} could not be removed." >&2
+    echo "          Check the diretory permissions." >&2
+    exit 1
+  )
+}
+
+confirm() {
+  local response=""
+  read -p "${1} [Y/N]: " response
+  #echo ${response}
+  if printf "%s\n" "${response}" | grep -Eq "^[yY].*"; then
+    return 0
+  else
+    return 1
+  fi
+}
 
 do_main() {
   # check for help and version
   case "$1" in
-    "help"|"--help"|"-h")
+    "help" | "--help" | "-h")
       help
       exit 0
     ;;
 
-    "version"|"--version"|"-v")
+    "version" | "--version" | "-v")
       echo "${APP_NAME} – version ${APP_VERSION}"
       exit 0
     ;;
 
     "clean")
-      rm -rf ./elixir/ &&
-      rm -rf ./v*/ &&
-      rm -f Precompiled.zip &&
-      rm -f v*.tar.gz &&
-      rm -f v*.zip &&
-      echo "Files have been removed."
+      # TODO: Ask user to confirm action
+      confirm "Are you sure you want to remove these files?" && (
+        purge_downloaded_files &&
+        echo "* [OK] Files have been removed."
+      ) || (
+        echo "Operation Cancelled"
+      )
+      exit 0
+    ;;
+
+    "purge")
+      # TODO: Ask user to confirm action
+      purge_downloaded_files &&
+      purge_default_dest_dir &&
+      purge_default_dest_dir &&
+      echo "* [OK] Files and folders have been removed."
+      exit 0
     ;;
   esac
 
-  # check for minimu no. of args
+  # check for minimun number of args
   if [ "$#" -lt 2 ]; then
     short_help >&2
     exit 1
@@ -164,24 +223,27 @@ do_main() {
   # Get Variables from ARGS
   ACTION="$1"
   PACKAGE_TYPE="$2"
-  if [ "$3" = "" ] || [ "$3" = "$DEFAULT_VERSION" ]; then
+  if [ "$3" = "" ] || [ "$3" = "${DEFAULT_VERSION}" ]; then
+    echo "* Retrieving version number of latest Elixir release..."
     VERSION=$(get_latest_version)
   else
     VERSION=$(sanitize_version "$3")
   fi
+
   if [ "$4" = "" ] ; then
-    DEST_DIR="$DEFAULT_DEST_DIR"
+    DEST_DIR="${DEFAULT_DEST_DIR}"
   else
     DEST_DIR=$(sanitize_dest_dir "$4")
   fi
 
   # Check for unrecognized options
-  if [ "$ACTION" != "unpack" ] ||  [ "$ACTION" != "download" ]; then
-    echo "* [ERROR] Unrecognized ACTION. Try 'unpack' or 'download'." >&2
+  if [ "${ACTION}" != "unpack" ] &&  [ "${ACTION}" != "download" ]; then
+    echo "* [ERROR] Unrecognized ACTION \"${ACTION}\". Try 'unpack' or 'download'." >&2
     exit 1
   fi
-  if [ "$PACKAGE_TYPE" != "source" ] ||  [ "$PACKAGE_TYPE" != "precompiled" ]; then
-    echo "* [ERROR] Unrecognized PACKAGE_TYPE. Try 'source' or 'precompiled'." >&2
+  
+  if [ "${PACKAGE_TYPE}" != "source" ] &&  [ "${PACKAGE_TYPE}" != "precompiled" ]; then
+    echo "* [ERROR] Unrecognized PACKAGE_TYPE \"${PACKAGE_TYPE}\". Try 'source' or 'precompiled'." >&2
     exit 1
   fi
 
@@ -190,18 +252,18 @@ do_main() {
   ELIXIR_TREE_URL="https://github.com/elixir-lang/elixir/tree/v${VERSION}"
 
   # Do our logic
-  case "$ACTION" in
+  case "${ACTION}" in
     "download")
-      case "$PACKAGE_TYPE" in
+      case "${PACKAGE_TYPE}" in
         "source")
-          download_source "$VERSION"
+          download_source "${VERSION}"
           echo "* [OK] Elixir v${VERSION} [Source]"
           echo "       ${ELIXIR_TREE_URL}"
           echo "       Downloaded: v${VERSION}.tar.gz"
         ;;
 
         "precompiled")
-          download_precompiled "$VERSION"
+          download_precompiled "${VERSION}"
           echo "* [OK] Elixir v${VERSION} [Precompiled]"
           echo "       ${ELIXIR_TREE_URL}"
           echo "       Downloaded: Precompiled.zip"
@@ -210,18 +272,18 @@ do_main() {
     ;;
 
     "unpack")
-      case "$PACKAGE_TYPE" in
+      case "${PACKAGE_TYPE}" in
         "source")
-          download_source "$VERSION"
-          unpack_source "$VERSION" "$DEST_DIR"
+          download_source "${VERSION}"
+          unpack_source "${VERSION}" "${DEST_DIR}"
           echo "* [OK] Elixir v${VERSION} [Source]"
           echo "       ${ELIXIR_TREE_URL}"
           echo "       Files have been unpacked to: ${DEST_DIR}/"
         ;;
 
         "precompiled")
-          download_precompiled "$VERSION"
-          unpack_precompiled "$DEST_DIR"
+          download_precompiled "${VERSION}"
+          unpack_precompiled "${DEST_DIR}"
           echo "* [OK] Elixir v${VERSION} [Precompiled]"
           echo "       ${ELIXIR_TREE_URL}"
           echo "       Files have been unpacked to: ${DEST_DIR}/"
@@ -229,7 +291,7 @@ do_main() {
       esac
       ;;
   esac
-
+  echo
 }
 
 do_main $*
