@@ -25,12 +25,12 @@ DEST_DIR=""
 short_help() {
   echo "${COMMAND}: missing arguments.
 
-  Usage: ${COMMAND} ACTION PACKAGE_TYPE [VERSION_NUMBER] [DEST_DIR]
+  Usage: ${COMMAND} (unpack | download) (source | precompiled) [<VERSION_NUMBER> | latest] [<DEST_DIR>]
 
   Example:
   ${COMMAND} unpack source
 
-  Try \`${COMMAND} help\` for more information."
+  Try \`${COMMAND} --help\` for more information."
 }
 
 help() {
@@ -45,8 +45,6 @@ help() {
   Actions:
   download      Downloads the package
   unpack        Downloads the package and unpacks it
-  version       Prints version
-  help          Prints help menu
 
   Package Types:
   source        Source files
@@ -59,6 +57,10 @@ help() {
 
   Destination Dir:
   Where you want to unpack Elixir. Default value: '${DEFAULT_DEST_DIR}'.
+
+  Options:
+  --version       Prints version
+  --help          Prints help menu
 
   Usage Examples:
   \$ ${COMMAND} unpack source
