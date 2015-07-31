@@ -45,10 +45,6 @@ help() {
   Actions:
   download      Downloads the package
   unpack        Downloads the package and unpacks it
-  clean         Removes donwloaded files
-  purge         Removes downloaded files and the default destination
-                directory (${DEFAULT_DEST_DIR}) where files have been
-                extracted to
   version       Prints version
   help          Prints help menu
 
@@ -151,35 +147,6 @@ unpack_precompiled() {
   )
 }
 
-purge_downloaded_files() {
-  rm -f Precompiled.zip &&
-  rm -f v*.tar.gz &&
-  rm -f v*.zip || (
-    echo "* [ERROR] Files could not be removed." >&2
-    echo "          Check the file permissions." >&2
-    exit 1
-  )
-}
-
-purge_default_dest_dir() {
-  rm -rf ./${DEFAULT_DEST_DIR} || (
-    echo "* [ERROR] ${DEFAULT_DEST_DIR} could not be removed." >&2
-    echo "          Check the diretory permissions." >&2
-    exit 1
-  )
-}
-
-confirm() {
-  local response=""
-  read -p "${1} [Y/N]: " response
-  #echo ${response}
-  if printf "%s\n" "${response}" | grep -Eq "^[yY].*"; then
-    return 0
-  else
-    return 1
-  fi
-}
-
 do_main() {
   # check for help and version
   case "$1" in
@@ -190,26 +157,6 @@ do_main() {
 
     "version" | "--version" | "-v")
       echo "${APP_NAME} – version ${APP_VERSION}"
-      exit 0
-    ;;
-
-    "clean")
-      # TODO: Ask user to confirm action
-      confirm "Are you sure you want to remove these files?" && (
-        purge_downloaded_files &&
-        echo "* [OK] Files have been removed."
-      ) || (
-        echo "Operation Cancelled"
-      )
-      exit 0
-    ;;
-
-    "purge")
-      # TODO: Ask user to confirm action
-      purge_downloaded_files &&
-      purge_default_dest_dir &&
-      purge_default_dest_dir &&
-      echo "* [OK] Files and folders have been removed."
       exit 0
     ;;
   esac
@@ -291,7 +238,6 @@ do_main() {
       esac
       ;;
   esac
-  echo
 }
 
 do_main $*
