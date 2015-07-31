@@ -1,10 +1,8 @@
 #!/bin/sh
 
-# TODO: add action to add the desired path to path.
-
 APP_NAME="elixir-get"
-APP_VERSION="0.0.1-dev"
-COMMAND="./get-elixir.sh"
+APP_VERSION="0.0.1"
+APP_COMMAND="./get-elixir.sh"
 ELIXIR_CSV_URL="https://raw.githubusercontent.com/elixir-lang/elixir-lang.github.com/master/elixir.csv"
 ELIXIR_RELEASES_URL="https://github.com/elixir-lang/elixir/releases"
 ELIXIR_RELEASE_TAG_URL=""
@@ -15,7 +13,7 @@ DEFAULT_DEST_DIR="elixir"
 DEFAULT_VERSION="latest"
 
 #ARGS VARIABLES
-ACTION=""
+COMMAND=""
 PACKAGE_TYPE=""
 VERSION=""
 DEST_DIR=""
@@ -23,57 +21,59 @@ DEST_DIR=""
 # FUNCTIONS
 
 short_help() {
-  echo "${COMMAND}: missing arguments.
+  echo "${APP_COMMAND}: missing arguments.
 
-  Usage: ${COMMAND} (unpack | download) (source | precompiled) [<VERSION_NUMBER> | latest] [<DEST_DIR>]
+  Usage: ./get-elixir.sh (unpack | download) (source | precompiled)
+                         [<version_number> | latest] [<dest_dir>]
 
   Example:
-  ${COMMAND} unpack source
+    ${APP_COMMAND} unpack source
 
-  Try \`${COMMAND} --help\` for more information."
+  Try '${APP_COMMAND} --help' for more information."
 }
 
 help() {
   echo "${APP_NAME} version ${VERSION}
 
-  Get any released version of the Elixir programming language,
+  Get any release of the Elixir programming language,
   without leaving the comfort of your command line.
-  http://elixir-lang.org
 
-  Usage: ${COMMAND} ACTION PACKAGE_TYPE [VERSION_NUMBER] [DEST_DIR]
+  Usage: ./get-elixir.sh <command> <package_type> [<version_number>]
+                         [<dest_dir>]
 
-  Actions:
-  download      Downloads the package
-  unpack        Downloads the package and unpacks it
+  Commands:
+    download      Downloads the package
+    unpack        Downloads the package and unpacks it
 
   Package Types:
-  source        Source files
-  precompiled   Precompiled files
+    source        Source files
+    precompiled   Precompiled files
 
   Version Number:
-  'latest' is the default option, and it's not required to specify it
-  (unless a DEST_DIR want to be used)
-  Examples: 'latest', '1.0.5', '1.0.0-rc2'
+    'latest' is the default option, and it's not required to specify it
+    (unless a DEST_DIR want to be used)
+    Examples: 'latest', '1.0.5', '1.0.0-rc2'
 
   Destination Dir:
-  Where you want to unpack Elixir. Default value: '${DEFAULT_DEST_DIR}'.
+    Where you want to unpack Elixir. Default value: '${DEFAULT_DEST_DIR}'.
 
   Options:
-  --version       Prints version
-  --help          Prints help menu
+    --version     Prints version
+    --help        Prints help menu
 
   Usage Examples:
-  \$ ${COMMAND} unpack source
-  \$ ${COMMAND} unpack source 1.0.5
-  \$ ${COMMAND} download precompiled 1.0.0-rc2
 
-  # Install the latest in a differt directory.
-  \$ ${COMMAND} unpack source latest ./elixir-new
+      ${APP_COMMAND} unpack source
+      ${APP_COMMAND} unpack source 1.0.5
+      ${APP_COMMAND} download precompiled 1.0.0-rc2
 
-  # Get sources and compiled all in one
-  \$ ${COMMAND} unpack precompiled && ${COMMAND} unpack source 
+      # Install the latest in a differt directory
+      ${APP_COMMAND} unpack source latest ./elixir-new
 
-  ** For a list of available releases, plesase visit
+      # Get sources and compiled all in one
+      ${APP_COMMAND} unpack precompiled && ${APP_COMMAND} unpack source 
+
+  ** For a list of available releases, plesase visit:
      ${ELIXIR_RELEASES_URL}"
 }
 
@@ -170,7 +170,7 @@ do_main() {
   fi
 
   # Get Variables from ARGS
-  ACTION="$1"
+  COMMAND="$1"
   PACKAGE_TYPE="$2"
   if [ "$3" = "" ] || [ "$3" = "${DEFAULT_VERSION}" ]; then
     echo "* Retrieving version number of latest Elixir release..."
@@ -186,8 +186,8 @@ do_main() {
   fi
 
   # Check for unrecognized options
-  if [ "${ACTION}" != "unpack" ] &&  [ "${ACTION}" != "download" ]; then
-    echo "* [ERROR] Unrecognized ACTION \"${ACTION}\". Try 'unpack' or 'download'." >&2
+  if [ "${COMMAND}" != "unpack" ] &&  [ "${COMMAND}" != "download" ]; then
+    echo "* [ERROR] Unrecognized ACTION \"${COMMAND}\". Try 'unpack' or 'download'." >&2
     exit 1
   fi
   
@@ -201,7 +201,7 @@ do_main() {
   ELIXIR_TREE_URL="https://github.com/elixir-lang/elixir/tree/v${VERSION}"
 
   # Do our logic
-  case "${ACTION}" in
+  case "${COMMAND}" in
     "download")
       case "${PACKAGE_TYPE}" in
         "source")
