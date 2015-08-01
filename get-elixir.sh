@@ -1,7 +1,7 @@
 #!/bin/sh
 
 APP_NAME="elixir-get"
-APP_VERSION="0.0.1"
+APP_VERSION="0.0.2-dev"
 APP_COMMAND="./get-elixir.sh"
 ELIXIR_CSV_URL="https://raw.githubusercontent.com/elixir-lang/elixir-lang.github.com/master/elixir.csv"
 ELIXIR_RELEASES_URL="https://github.com/elixir-lang/elixir/releases"
