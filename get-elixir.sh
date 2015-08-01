@@ -1,12 +1,23 @@
 #!/bin/sh
 
-APP_NAME="elixir-get"
-APP_VERSION="0.0.2-dev"
+trap "exit 1" TERM
+export TOP_PID=$$
+
+APP_NAME="get-elixir"
+APP_VERSION="0.0.2"
+#DEV_MODE="true" # true/false
 APP_COMMAND="./get-elixir.sh"
-ELIXIR_CSV_URL="https://raw.githubusercontent.com/elixir-lang/elixir-lang.github.com/master/elixir.csv"
+APP_REPO_USER="eksperimental"
+APP_URL="https://github.com/${APP_REPO_USER}/${APP_NAME}"
+APP_GIT_URL="${APP_URL}.git"
+APP_SCRIPT_URL="${APP_URL}/raw/master/get-elixir.sh"
+APP_SCRIPT=$(basename "${APP_SCRIPT_URL}")
+APP_RELEASES_URL="https://github.com/${APP_REPO_USER}/${APP_NAME}/releases"
+ELIXIR_CSV_URL="https://github.com/elixir-lang/elixir-lang.github.com/raw/master/elixir.csv"
 ELIXIR_RELEASES_URL="https://github.com/elixir-lang/elixir/releases"
 ELIXIR_RELEASE_TAG_URL=""
 ELIXIR_TREE_URL=""
+SCRIPT_PATH="$(dirname "$0")/${APP_SCRIPT}"
 
 #DEFAULT
 DEFAULT_DEST_DIR="elixir"
@@ -47,7 +58,7 @@ help() {
 
   Package Types:
     source        Source files
-    precompiled   Precompiled files
+    precompiled   Precompiled binaries
 
   Version Number:
     'latest' is the default option, and it's not required to specify it
@@ -58,8 +69,9 @@ help() {
     Where you want to unpack Elixir. Default value: '${DEFAULT_DEST_DIR}'.
 
   Options:
-    --version     Prints version
-    --help        Prints help menu
+    --help           Prints help menu
+    --update-script  Replace this script by downloading the latest version
+    --version        Prints version
 
   Usage Examples:
 
@@ -77,8 +89,15 @@ help() {
      ${ELIXIR_RELEASES_URL}"
 }
 
+exit_script() {
+  # http://stackoverflow.com/questions/9893667/is-there-a-way-to-write-a-bash-function-which-aborts-the-whole-execution-no-mat
+  kill -s TERM $TOP_PID
+}
+
 sanitize_version() {
-  printf '%s' "$1" | sed -e 's/^v//g'
+  # remove v from version,
+  # and after that, any "../"
+  printf '%s' "$1" | sed -e 's/^v//g;s@^\.\./@@g;'
 }
 
 sanitize_dest_dir() {
@@ -87,27 +106,39 @@ sanitize_dest_dir() {
 
 get_latest_version() {
   local version
-  version=$(curl -s -fL "${ELIXIR_CSV_URL}" | sed '2q;d' | cut -d , -f1)
+  version=$(curl -sfL "${ELIXIR_CSV_URL}" | sed '2q;d' | cut -d , -f1)
   if [ "${version}" = "" ]; then 
     echo "* [ERROR] Latest Elixir version number couldn't be retrieved from ${ELIXIR_CSV_URL}" >&2
-    exit 1
+    exit_script
   else
     echo "${version}"
   fi
 }
 
+get_latest_script_version() {
+  #version=$(curl -s -fL "${APP_RELEASES_URL}" | grep browser_download_url | head -n 1 | cut -d '"' -f 4)
+  local version=$(curl -sfI "${APP_RELEASES_URL}/latest" |  grep "Location: " | tr '\r' '\0' | tr '\n' '\0' | rev | cut -d"/" -f1 | rev)
+  if [ "${version}" = "" ]; then
+    echo "* [ERROR] Latest ${APP_NAME} version number couldn't be retrieved from ${APP_RELEASES_URL}" >&2
+    exit_script
+  else
+    echo "$(sanitize_version "${version}")"
+  fi
+}
+
+
 download_source() {
   local version="$1"
   local url="https://github.com/elixir-lang/elixir/archive/v${version}.tar.gz"
   echo "* Downloading ${url}"
-  curl -fL -o "v${version}.tar.gz" "${url}"
+  curl -fL -O "${url}"
   if [ ! -f "v${version}.tar.gz" ]; then
     echo "* [ERROR] Elixir v${VERSION} could not be downloaded from ${url}" >&2
     if [ "${VERSION}" != "${DEFAULT_VERSION}" ]; then
     echo "          Please make sure version number is a valid one, by checking:" >&2
     echo "          ${ELIXIR_RELEASES_URL}" >&2
     fi
-    exit 1
+    exit_script
   fi
 }
 
@@ -115,14 +146,14 @@ download_precompiled() {
   local version="$1"
   local url="https://github.com/elixir-lang/elixir/releases/download/v${version}/Precompiled.zip"
   echo "* Downloading ${url}"
-  curl -fL -o Precompiled.zip "${url}"
+  curl -fL -O "${url}"
   if [ ! -f Precompiled.zip ]; then
     echo "* [ERROR] Elixir v${VERSION} could not be downloaded from ${url}" >&2
     if [ "${VERSION}" != "${DEFAULT_VERSION}" ]; then
     echo "          Please make sure version number is a valid one, by finding it in:" >&2
     echo "          ${ELIXIR_RELEASES_URL}" >&2
     fi
-    exit 1
+    exit_script
   fi
 }
 
@@ -135,7 +166,7 @@ unpack_source() {
   rm -rf elixir-${version}/ || (
     echo "* [ERROR] \"v${version}.tar.gz\" could not be unpacked to ${dest_dir}" >&2
     echo "          Check the file permissions." >&2
-    exit 1
+    exit_script
   )
 }
 
@@ -145,8 +176,51 @@ unpack_precompiled() {
   unzip -o -q -d ${dest_dir} Precompiled.zip || (
     echo "* [ERROR] \"Precompiled.zip\" could not be unpacked to ${dest_dir}" >&2
     echo "          Check the file permissions." >&2
-    exit 1
+    exit_script
   )
+}
+
+update_script() {
+  if [ "${DEV_MODE}" = "true" ]; then
+    echo "* [ERROR] ${APP_NAME} cannot be updated when \`DEV_MODE=\"true\"\`" >&2
+    exit_script
+  fi
+
+  echo "* Retrieving version number of latest ${APP_NAME} release..."
+  local latest_script_version=$(get_latest_script_version)
+  local remote_script_url="${APP_URL}/raw/v${latest_script_version}/get-elixir.sh"
+  
+  if [ "${latest_script_version}" != "${APP_VERSION}" ]; then
+    confirm "* You are about to replace '${SCRIPT_PATH}'.
+  Do you confirm?" && (
+      curl -fL -o "${SCRIPT_PATH}" "${remote_script_url}" && (
+        chmod +x "${SCRIPT_PATH}"
+        echo "* [OK] ${APP_NAME} succesfully updated"
+        return 0
+      ) || (
+        echo "* [ERROR] ${APP_NAME} could not be downloaded from" >&2
+        echo "          ${remote_script_url}" >&2
+        exit_script
+      )
+    ) || (
+      echo "* Updating script has been cancelled."
+      return 1
+    )
+  else
+    echo "* [OK] ${APP_COMMAND} is already the newest version."
+    return 0
+  fi
+}
+
+confirm() {
+  local response=""
+  read -p "${1} [Y/N]: " response
+  #echo ${response}
+  if printf "%s\n" "${response}" | grep -Eq "^[yY].*"; then
+    return 0
+  else
+    return 1
+  fi
 }
 
 do_main() {
@@ -154,19 +228,24 @@ do_main() {
   case "$1" in
     "help" | "--help" | "-h")
       help
-      exit 0
+      return 0
+    ;;
+
+    "update-script" | "--update-script")
+      update_script
+      return 0
     ;;
 
     "version" | "--version" | "-v")
       echo "${APP_NAME} – version ${APP_VERSION}"
-      exit 0
+      return 0
     ;;
   esac
 
   # check for minimun number of args
   if [ "$#" -lt 2 ]; then
     short_help >&2
-    exit 1
+    exit_script
   fi
 
   # Get Variables from ARGS
@@ -188,12 +267,12 @@ do_main() {
   # Check for unrecognized options
   if [ "${COMMAND}" != "unpack" ] &&  [ "${COMMAND}" != "download" ]; then
     echo "* [ERROR] Unrecognized <action> \"${COMMAND}\". Try 'unpack' or 'download'." >&2
-    exit 1
+    exit_script
   fi
   
   if [ "${PACKAGE_TYPE}" != "source" ] &&  [ "${PACKAGE_TYPE}" != "precompiled" ]; then
     echo "* [ERROR] Unrecognized <package_type> \"${PACKAGE_TYPE}\". Try 'source' or 'precompiled'." >&2
-    exit 1
+    exit_script
   fi
 
   # Define variables based on $VERSION
