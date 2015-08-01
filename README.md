@@ -1,5 +1,6 @@
 # get-elixir
-Get any release of the Elixir programming language, without leaving the comfort of your command line.
+
+Get any release of the **Elixir programming language**, without leaving the comfort of your command line.
 
 ## About
 
@@ -58,6 +59,23 @@ And you can update this very same script from your command line:
 ```sh
 ./get-elixir.sh update-script
 ```
+
+## More information
+
+More information can be found at the [Elixir Website](http://elixir-lang.org/),
+and you are probably interested in reading [Installing Elixir](elixir-lang.org/install.html).
+
+## Contributing
+
+If you think a feature should be added or you have found something not working as expected, please [create a ticket](https://github.com/eksperimental/get-elixir/issues/new).
+
+[Pull requests](https://github.com/eksperimental/get-elixir/pulls) are always welcome.
+
+## Credits
+
+The script have been created by me, Eksperimental.
+I usually contribute to various Elixir projects,
+and this is another way to continue doing that.
 
 ## License
 

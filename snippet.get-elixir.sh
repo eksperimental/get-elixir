@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# This file contains the snippets to achive pretty much what the script does
+# in a very basic way.
+
 # Download latest stable Elixir source-code.
 # curl version
 version=$(curl -sfL \

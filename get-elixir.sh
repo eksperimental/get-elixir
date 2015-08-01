@@ -186,7 +186,7 @@ update_script() {
   
   if [ "${latest_script_version}" != "${APP_VERSION}" ]; then
     confirm "* You are about to replace '${SCRIPT_PATH}'.
-  Current version: ${APP_VERSION} – New version:  ${latest_script_version}
+  Current version: ${APP_VERSION} / New version:  ${latest_script_version}
   Do you confirm?" && (
       curl -fL -o "${SCRIPT_PATH}" "${remote_script_url}" && (
         chmod +x "${SCRIPT_PATH}"
