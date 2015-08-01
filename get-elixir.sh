@@ -4,8 +4,7 @@ trap "exit 1" TERM
 export TOP_PID=$$
 
 APP_NAME="get-elixir"
-APP_VERSION="0.0.2"
-#DEV_MODE="true" # true/false
+APP_VERSION="0.0.3-dev"
 APP_COMMAND="./get-elixir.sh"
 APP_REPO_USER="eksperimental"
 APP_URL="https://github.com/${APP_REPO_USER}/${APP_NAME}"
@@ -181,21 +180,17 @@ unpack_precompiled() {
 }
 
 update_script() {
-  if [ "${DEV_MODE}" = "true" ]; then
-    echo "* [ERROR] ${APP_NAME} cannot be updated when \`DEV_MODE=\"true\"\`" >&2
-    exit_script
-  fi
-
   echo "* Retrieving version number of latest ${APP_NAME} release..."
   local latest_script_version=$(get_latest_script_version)
   local remote_script_url="${APP_URL}/raw/v${latest_script_version}/get-elixir.sh"
   
   if [ "${latest_script_version}" != "${APP_VERSION}" ]; then
     confirm "* You are about to replace '${SCRIPT_PATH}'.
+  Current version: ${APP_VERSION} – New version:  ${latest_script_version}
   Do you confirm?" && (
       curl -fL -o "${SCRIPT_PATH}" "${remote_script_url}" && (
         chmod +x "${SCRIPT_PATH}"
-        echo "* [OK] ${APP_NAME} succesfully updated"
+        echo "* [OK] ${APP_NAME} succesfully updated."
         return 0
       ) || (
         echo "* [ERROR] ${APP_NAME} could not be downloaded from" >&2
