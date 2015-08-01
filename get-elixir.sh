@@ -51,7 +51,7 @@ help() {
 
   Version Number:
     'latest' is the default option, and it's not required to specify it
-    (unless a DEST_DIR want to be used)
+    (unless a <dest_dir> wants to be used)
     Examples: 'latest', '1.0.5', '1.0.0-rc2'
 
   Destination Dir:
@@ -187,12 +187,12 @@ do_main() {
 
   # Check for unrecognized options
   if [ "${COMMAND}" != "unpack" ] &&  [ "${COMMAND}" != "download" ]; then
-    echo "* [ERROR] Unrecognized ACTION \"${COMMAND}\". Try 'unpack' or 'download'." >&2
+    echo "* [ERROR] Unrecognized <action> \"${COMMAND}\". Try 'unpack' or 'download'." >&2
     exit 1
   fi
   
   if [ "${PACKAGE_TYPE}" != "source" ] &&  [ "${PACKAGE_TYPE}" != "precompiled" ]; then
-    echo "* [ERROR] Unrecognized PACKAGE_TYPE \"${PACKAGE_TYPE}\". Try 'source' or 'precompiled'." >&2
+    echo "* [ERROR] Unrecognized <package_type> \"${PACKAGE_TYPE}\". Try 'source' or 'precompiled'." >&2
     exit 1
   fi
 
