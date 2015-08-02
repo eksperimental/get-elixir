@@ -1,16 +1,18 @@
 # get-elixir
 
-Get any release of the **[Elixir programming language](http://elixir-lang.org)**, being **_source codes_** or **_precompiled binaries_**, without leaving the comfort of your command line.
+Get any release of the **[Elixir programming language](http://elixir-lang.org)**, being **_source code_** or **_precompiled binaries_**, without leaving the comfort of your command line.
 
 ## About
 
-get-elixir is a script is POSIX compliant shell script which aims to help people download [Elixir releases](https://github.com/elixir-lang/elixir/releases).
+**get-elixir** is a script is POSIX compliant shell script which aims to help people download [Elixir releases](https://github.com/elixir-lang/elixir/releases) under any UNIX like operating system (ie. GNU/Linux, *BSD, OSX)
 
-All you have to do is tell the script, whether you want to **`download`** or **download and `unpack`** the latest (or any other release if you wish), and the script will get it for you.
+All you have to do is tell the script, whether you want to **download** or download-and-**unpack** the latest (or any other release), and the script will get it for you.
 
 It is your duty, though, to [set the PATH environmental variable](http://elixir-lang.org/install.html#setting-path-environment-variable) to the directory where Elixir was extracted to.
 
-If you are interested in only getting Elixir once, you can read the [one-liner article](one-liner.md) with the commands that you can copy and paste in your command line, without having to download any script.
+If you are interested in only getting Elixir once, you may execute the [one-liner commands](one-liner.md) that can be directly pasted into your command line, without having to download any script.
+
+It can also be of interest to developers who need maintain different of versions of Elixir, without the need to build them, to use in conjuntion with an Elixir version manager like [exevn](https://github.com/mururu/exenv).  
 
 ## Installation
 
@@ -23,32 +25,36 @@ It will download and set the permissions to execute the script.
 
 ## Usage
 
-    ./get-elixir.sh <command> <package_type> [<version_number>] [<dest_dir>]
-    ./get-elixir.sh (unpack | download) (source | precompiled) [<version_number>] [<dest_dir>]
-    ./get-elixir.sh (update-script | help | version)
+```sh
+./get-elixir.sh <command> <package_type> [<version_number>] [<dest_dir>]
+./get-elixir.sh (unpack | download) (source | binaries) [<version_number>] [<dest_dir>]
+./get-elixir.sh (update-script | help | version)
+```
 
-* <command>       : `unpack`, `download`
-* <package_type>  : `source`, `precompiled`
-* <version_number : `latest`*, or any [released version](https://github.com/elixir-lang/elixir/releases)
-* <dest_dir>      : `./elixir/`* or any other directory where you want the files to be unpacked.
+* \<command\>        : `unpack`, `download`
+* \<package_type\>   : `source`, `binaries`
+* \<version_number\> : `latest`*, or any [released version](https://github.com/elixir-lang/elixir/releases)
+* \<dest_dir\>       : `./elixir/`* or any other directory where you want the files to be unpacked.
 
-`*` denotes default value.
+*__*__ denotes default value.*
 
-The `download` <command> will only download the file, while the `unpack` <command> will download it an unpack it.
-The <package_type> can be the `source` code that you can use to compile Elixir yourself, or the `precompiled` binaries. 
+The `download` \<command\> will only download the file, while the `unpack` \<command\> will download it an unpack it.
+The \<package_type\> can be the `source` code that you can use to compile Elixir yourself, or the precompiled `binaries`.
 
 ## Examples
 
-    # unpack the latest source code
-    ./get-elixir.sh unpack source
+```sh
+# unpack the latest source code
+./get-elixir.sh unpack source
 
-    # unpack the latest binaries
-    ./get-elixir.sh unpack precompiled
+# unpack the latest precompiled binaries
+./get-elixir.sh unpack binaries
 
-    # unpack the precompiled binaries of v1.0.0 to dir `./elixir-1.0.0/`
-    ./get-elixir.sh unpack precompiled 1.0.0 elixir-1.0.0
+# unpack the precompiled binaries of v1.0.0 to dir `./elixir-1.0.0/`
+./get-elixir.sh unpack binaries 1.0.0 elixir-1.0.0
+```
 
-## Other Commands
+## Additional Commands
 
 You have other commands available, which are:
 
@@ -77,5 +83,5 @@ I usually contribute to various Elixir projects, and this is another way to cont
 ## License
 
 Please read [LICENSE.txt](LICENSE.txt) file.
-The works is unlicensed, so their are in the public domain.
+The works is unlicensed, meaning they are in the public domain.
 

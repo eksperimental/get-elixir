@@ -1,11 +1,15 @@
-## One-liners to Install Elixir
+One-liners to Install Elixir
+=============================
+
+The following shell commands achive pretty the same that the [`get-elixir`](README.md#usage).
+
+The commands are POSIX compliant.
 
 ## Curl
 
-This file contains the snippets to achive pretty much what the `get-elixir` does in a very basic way.
+**Download latest stable Elixir source-code.**
 
-Download latest stable Elixir source-code
-=========================================
+_Analogous to running: `./get-elixir.sh unpack source`_
 
 ```sh
 version=$(curl -sfL \
@@ -21,8 +25,9 @@ echo "* [OK] Elixir v{$version} sources can be found in ./elixir/" ||
 echo "* [ERROR] Elixir v{$version} couldn't not be either downloaded or unpacked"
 ```
 
-Download latest stable Elixir precompiled binaries
-==================================================
+**Download latest stable Elixir precompiled binaries.**
+
+_Analogous to running: `./get-elixir.sh unpack binaries`_
 
 ```sh
 version=$(curl -sfL \
@@ -38,8 +43,9 @@ echo "* [ERROR] Elixir v{$version} couldn't not be either downloaded or unpacked
 
 ## Wget
 
-Download latest stable Elixir source-code
-=========================================
+**Download latest stable Elixir source-code.**
+
+_Analogous to running: `./get-elixir.sh unpack source`_
 
 ```sh
 version=$(wget -qO- \
@@ -55,8 +61,9 @@ echo "* [OK] Elixir v{$version} sources can be found in ./elixir/" ||
 echo "* [ERROR] Elixir v{$version} couldn't not be either downloaded or unpacked"
 ```
 
-Download latest stable Elixir precompiled binaries
-==================================================
+**Download latest stable Elixir precompiled binaries.**
+
+_Analogous to running: `./get-elixir.sh unpack binaries`_
 
 ```sh
 version=$(wget -qO- \

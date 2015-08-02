@@ -33,7 +33,7 @@ DEST_DIR=""
 short_help() {
   echo "${APP_COMMAND}: missing arguments.
 
-  Usage: ./get-elixir.sh (unpack | download) (source | precompiled)
+  Usage: ./get-elixir.sh (unpack | download) (source | binaries)
                          [<version_number> | latest] [<dest_dir>]
 
   Example:
@@ -56,8 +56,8 @@ help() {
     unpack        Downloads the package and unpacks it
 
   Package Types:
-    source        Source files
-    precompiled   Precompiled binaries
+    source        Source code
+    binaries      Precompiled binaries
 
   Version Number:
     'latest' is the default option, and it's not required to specify it
@@ -76,13 +76,13 @@ help() {
 
       ${APP_COMMAND} unpack source
       ${APP_COMMAND} unpack source 1.0.5
-      ${APP_COMMAND} download precompiled 1.0.0-rc2
+      ${APP_COMMAND} download binaries 1.0.0-rc2
 
       # Install the latest in a differt directory
       ${APP_COMMAND} unpack source latest ./elixir-new
 
       # Get sources and compiled all in one
-      ${APP_COMMAND} unpack precompiled && ${APP_COMMAND} unpack source 
+      ${APP_COMMAND} unpack binaries && ${APP_COMMAND} unpack source 
 
   ** For a list of available releases, plesase visit:
      ${ELIXIR_RELEASES_URL}"
@@ -141,7 +141,7 @@ download_source() {
   fi
 }
 
-download_precompiled() {
+download_binaries() {
   local version="$1"
   local url="https://github.com/elixir-lang/elixir/releases/download/v${version}/Precompiled.zip"
   echo "* Downloading ${url}"
@@ -169,7 +169,7 @@ unpack_source() {
   )
 }
 
-unpack_precompiled() {
+unpack_binaries() {
   local dest_dir="$1"
   mkdir -p ${dest_dir} && 
   unzip -o -q -d ${dest_dir} Precompiled.zip || (
@@ -265,8 +265,8 @@ do_main() {
     exit_script
   fi
   
-  if [ "${PACKAGE_TYPE}" != "source" ] &&  [ "${PACKAGE_TYPE}" != "precompiled" ]; then
-    echo "* [ERROR] Unrecognized <package_type> \"${PACKAGE_TYPE}\". Try 'source' or 'precompiled'." >&2
+  if [ "${PACKAGE_TYPE}" != "source" ] &&  [ "${PACKAGE_TYPE}" != "binaries" ]; then
+    echo "* [ERROR] Unrecognized <package_type> \"${PACKAGE_TYPE}\". Try 'source' or 'binaries'." >&2
     exit_script
   fi
 
@@ -280,14 +280,14 @@ do_main() {
       case "${PACKAGE_TYPE}" in
         "source")
           download_source "${VERSION}"
-          echo "* [OK] Elixir v${VERSION} [Source]"
+          echo "* [OK] Elixir v${VERSION} [source code]"
           echo "       ${ELIXIR_TREE_URL}"
           echo "       Downloaded: v${VERSION}.tar.gz"
         ;;
 
-        "precompiled")
-          download_precompiled "${VERSION}"
-          echo "* [OK] Elixir v${VERSION} [Precompiled]"
+        "binaries")
+          download_binaries "${VERSION}"
+          echo "* [OK] Elixir v${VERSION} [precompiled binaries]"
           echo "       ${ELIXIR_TREE_URL}"
           echo "       Downloaded: Precompiled.zip"
         ;;
@@ -304,10 +304,10 @@ do_main() {
           echo "       Files have been unpacked to: ${DEST_DIR}/"
         ;;
 
-        "precompiled")
-          download_precompiled "${VERSION}"
-          unpack_precompiled "${DEST_DIR}"
-          echo "* [OK] Elixir v${VERSION} [Precompiled]"
+        "binaries")
+          download_binaries "${VERSION}"
+          unpack_binaries "${DEST_DIR}"
+          echo "* [OK] Elixir v${VERSION} [precompiled binaries]"
           echo "       ${ELIXIR_TREE_URL}"
           echo "       Files have been unpacked to: ${DEST_DIR}/"
         ;;
