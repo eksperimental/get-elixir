@@ -4,7 +4,7 @@ trap "exit 1" TERM
 export TOP_PID=$$
 
 APP_NAME="get-elixir"
-APP_VERSION="0.0.3-dev"
+APP_VERSION="0.0.3"
 APP_COMMAND="./get-elixir.sh"
 APP_REPO_USER="eksperimental"
 APP_URL="https://github.com/${APP_REPO_USER}/${APP_NAME}"
