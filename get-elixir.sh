@@ -4,7 +4,7 @@ trap "exit 1" TERM
 export TOP_PID=$$
 
 APP_NAME="get-elixir"
-APP_VERSION="0.0.3"
+APP_VERSION="0.0.4-dev"
 APP_COMMAND="./get-elixir.sh"
 APP_REPO_USER="eksperimental"
 APP_URL="https://github.com/${APP_REPO_USER}/${APP_NAME}"
@@ -16,25 +16,30 @@ ELIXIR_CSV_URL="https://github.com/elixir-lang/elixir-lang.github.com/raw/master
 ELIXIR_RELEASES_URL="https://github.com/elixir-lang/elixir/releases"
 ELIXIR_RELEASE_TAG_URL=""
 ELIXIR_TREE_URL=""
-SCRIPT_PATH="$(dirname "$0")/${APP_SCRIPT}"
+SELF=""
+SCRIPT_PATH=""
 
 #DEFAULT
-DEFAULT_DEST_DIR="elixir"
-DEFAULT_VERSION="latest"
+DEFAULT_COMMAND="download"
+DEFAULT_DIR="elixir"
+DEFAULT_RELEASE="latest"
 
 #ARGS VARIABLES
 COMMAND=""
 PACKAGE_TYPE=""
-VERSION=""
-DEST_DIR=""
+RELEASE=""
+DIR=""
+
 
 # FUNCTIONS
 
 short_help() {
   echo "${APP_COMMAND}: missing arguments.
 
-  Usage: ./get-elixir.sh (unpack | download) (source | binaries)
-                         [<version_number> | latest] [<dest_dir>]
+  Usage: ./get-elixir.sh (--source | --binaries)
+                         [--unpack]
+                         [<release_number>]
+                         [--dir <dir>]
 
   Example:
     ${APP_COMMAND} unpack source
@@ -43,41 +48,42 @@ short_help() {
 }
 
 help() {
-  echo "${APP_NAME} version ${VERSION}
+  echo "${APP_NAME} version ${RELEASE}
 
   Get any release of the Elixir programming language,
   without leaving the comfort of your command line.
 
-  Usage: ./get-elixir.sh <command> <package_type> [<version_number>]
-                         [<dest_dir>]
-
-  Commands:
-    download      Downloads the package
-    unpack        Downloads the package and unpacks it
+  Usage: ./get-elixir.sh <package_type>... <options>...
 
   Package Types:
-    binaries         Precompiled binaries
-    source           Source code
-    binaries_source  Precompiled binaries and source code
-
-  Version Number:
-    'latest' is the default option, and it's not required to specify it
-    (unless a <dest_dir> wants to be used)
-    Examples: 'latest', '1.0.5', '1.0.0-rc2'
-
-  Destination Dir:
-    Where you want to unpack Elixir. Default value: '${DEFAULT_DEST_DIR}'.
-
+    -b, --binaries       Download precompiled binaries
+    -s, --source         Download source code
+  
   Options:
-    --help           Prints help menu
-    --update-script  Replace this script by downloading the latest version
-    --version        Prints version
+    -u, --unpack         Unpacks the package(s) once downloaded
+    -r, --release        Elixir release number
+                         'latest' is the default option
+                         Examples: 'latest', '1.0.5', '1.0.0-rc2'
+    -d, --dir            Directory where you want to unpack Elixir.
+                         Default value: '${DEFAULT_DIR}'
+  
+  Other Options:
+    -h, --help           Prints help menu
+        --update-script  Replace this script by downloading the latest release
+    -v, --version        Prints script version
 
   Usage Examples:
 
-      ${APP_COMMAND} unpack source
-      ${APP_COMMAND} unpack source 1.0.5
-      ${APP_COMMAND} download binaries 1.0.0-rc2
+      # Download the source code for the latest relase
+      ${APP_COMMAND} --source
+
+      # Download and unpack the souce code for v1.0.5,
+      # and unpack it in dir 'elixir-1.0.x'
+      ${APP_COMMAND} --unpack --source --release 1.0.5 --dir elixir-1.0.x/
+      
+      # Download and unpack source code and precompiled binaries,
+      # for v1.0.0-rc2
+      ${APP_COMMAND} -u -s -b -r 1.0.0-rc2
 
       # Install the latest in a differt directory
       ${APP_COMMAND} unpack source latest ./elixir-new
@@ -94,58 +100,58 @@ exit_script() {
   kill -s TERM $TOP_PID
 }
 
-sanitize_version() {
-  # remove v from version,
+sanitize_release() {
+  # remove v from release,
   # and after that, any "../"
   printf '%s' "$1" | sed -e 's/^v//g;s@^\.\./@@g;'
 }
 
-sanitize_dest_dir() {
+sanitize_dir() {
   printf '%s' "$1" | sed -e 's@/$@@g'
 }
 
-get_elixir_final_release_versions() {
-  local versions
-  versions=$(curl -sfL "${ELIXIR_CSV_URL}" | tail -n +2 | cut -d , -f1)
-  if [ "${versions}" = "" ]; then
-    echo "* [ERROR] Elixir's final release version numbers couldn't be retrieved from ${ELIXIR_CSV_URL}" >&2
+get_elixir_final_release_releases() {
+  local releases
+  releases=$(curl -sfL "${ELIXIR_CSV_URL}" | tail -n +2 | cut -d , -f1)
+  if [ "${releases}" = "" ]; then
+    echo "* [ERROR] Elixir's final release numbers couldn't be retrieved from ${ELIXIR_CSV_URL}" >&2
     exit_script
   else
-    echo "${versions}"
+    echo "${releases}"
   fi
 }
 
-get_latest_version() {
-  local version
-  version=$(curl -sfL "${ELIXIR_CSV_URL}" | sed '2q;d' | cut -d , -f1)
-  if [ "${version}" = "" ]; then 
-    echo "* [ERROR] Latest Elixir version number couldn't be retrieved from ${ELIXIR_CSV_URL}" >&2
+get_latest_release() {
+  local release
+  release=$(curl -sfL "${ELIXIR_CSV_URL}" | sed '2q;d' | cut -d , -f1)
+  if [ "${release}" = "" ]; then 
+    echo "* [ERROR] Latest Elixir release number couldn't be retrieved from ${ELIXIR_CSV_URL}" >&2
     exit_script
   else
-    echo "${version}"
+    echo "${release}"
   fi
 }
 
 get_latest_script_version() {
-  #version=$(curl -s -fL "${APP_RELEASES_URL}" | grep browser_download_url | head -n 1 | cut -d '"' -f 4)
-  local version=$(curl -sfI "${APP_RELEASES_URL}/latest" |  grep "Location: " | tr '\r' '\0' | tr '\n' '\0' | rev | cut -d"/" -f1 | rev)
-  if [ "${version}" = "" ]; then
-    echo "* [ERROR] Latest ${APP_NAME} version number couldn't be retrieved from ${APP_RELEASES_URL}" >&2
+  #release=$(curl -s -fL "${APP_RELEASES_URL}" | grep browser_download_url | head -n 1 | cut -d '"' -f 4)
+  local release=$(curl -sfI "${APP_RELEASES_URL}/latest" |  grep "Location: " | tr '\r' '\0' | tr '\n' '\0' | rev | cut -d"/" -f1 | rev)
+  if [ "${release}" = "" ]; then
+    echo "* [ERROR] Latest ${APP_NAME} release number couldn't be retrieved from ${APP_RELEASES_URL}" >&2
     exit_script
   else
-    echo "$(sanitize_version "${version}")"
+    echo "$(sanitize_release "${release}")"
   fi
 }
 
 download_source() {
-  local version="$1"
-  local url="https://github.com/elixir-lang/elixir/archive/v${version}.tar.gz"
+  local release="$1"
+  local url="https://github.com/elixir-lang/elixir/archive/v${release}.tar.gz"
   echo "* Downloading ${url}"
   curl -fL -O "${url}"
-  if [ ! -f "v${version}.tar.gz" ]; then
-    echo "* [ERROR] Elixir v${VERSION} could not be downloaded from ${url}" >&2
-    if [ "${VERSION}" != "${DEFAULT_VERSION}" ]; then
-    echo "          Please make sure version number is a valid one, by checking:" >&2
+  if [ ! -f "v${release}.tar.gz" ]; then
+    echo "* [ERROR] Elixir v${RELEASE} could not be downloaded from ${url}" >&2
+    if [ "${RELEASE}" != "${DEFAULT_RELEASE}" ]; then
+    echo "          Please make sure release number is a valid one, by checking:" >&2
     echo "          ${ELIXIR_RELEASES_URL}" >&2
     fi
     exit_script
@@ -153,14 +159,14 @@ download_source() {
 }
 
 download_binaries() {
-  local version="$1"
-  local url="https://github.com/elixir-lang/elixir/releases/download/v${version}/Precompiled.zip"
+  local release="$1"
+  local url="https://github.com/elixir-lang/elixir/releases/download/v${release}/Precompiled.zip"
   echo "* Downloading ${url}"
   curl -fL -O "${url}"
   if [ ! -f Precompiled.zip ]; then
-    echo "* [ERROR] Elixir v${VERSION} could not be downloaded from ${url}" >&2
-    if [ "${VERSION}" != "${DEFAULT_VERSION}" ]; then
-    echo "          Please make sure version number is a valid one, by finding it in:" >&2
+    echo "* [ERROR] Elixir v${RELEASE} could not be downloaded from ${url}" >&2
+    if [ "${RELEASE}" != "${DEFAULT_RELEASE}" ]; then
+    echo "          Please make sure release number is a valid one, by finding it in:" >&2
     echo "          ${ELIXIR_RELEASES_URL}" >&2
     fi
     exit_script
@@ -168,23 +174,23 @@ download_binaries() {
 }
 
 unpack_source() {
-  local version="$1"
-  local dest_dir="$2"
-  tar -xzf v${version}.tar.gz && 
-  mkdir -p ${dest_dir} && 
-  cp -rf elixir-${version}/* ${dest_dir} && 
-  rm -rf elixir-${version}/ || (
-    echo "* [ERROR] \"v${version}.tar.gz\" could not be unpacked to ${dest_dir}" >&2
+  local release="$1"
+  local dir="$2"
+  tar -xzf v${release}.tar.gz && 
+  mkdir -p ${dir} && 
+  cp -rf elixir-${release}/* ${dir} && 
+  rm -rf elixir-${release}/ || (
+    echo "* [ERROR] \"v${release}.tar.gz\" could not be unpacked to ${dir}" >&2
     echo "          Check the file permissions." >&2
     exit_script
   )
 }
 
 unpack_binaries() {
-  local dest_dir="$1"
-  mkdir -p ${dest_dir} && 
-  unzip -o -q -d ${dest_dir} Precompiled.zip || (
-    echo "* [ERROR] \"Precompiled.zip\" could not be unpacked to ${dest_dir}" >&2
+  local dir="$1"
+  mkdir -p ${dir} && 
+  unzip -o -q -d ${dir} Precompiled.zip || (
+    echo "* [ERROR] \"Precompiled.zip\" could not be unpacked to ${dir}" >&2
     echo "          Check the file permissions." >&2
     exit_script
   )
@@ -197,7 +203,7 @@ update_script() {
   
   if [ "${latest_script_version}" != "${APP_VERSION}" ]; then
     confirm "* You are about to replace '${SCRIPT_PATH}'.
-  Current version: ${APP_VERSION} / New version:  ${latest_script_version}
+  Current version: ${APP_VERSION} / Newest version:  ${latest_script_version}
   Do you confirm?" && (
       curl -fL -o "${SCRIPT_PATH}" "${remote_script_url}" && (
         chmod +x "${SCRIPT_PATH}"
@@ -229,122 +235,212 @@ confirm() {
   fi
 }
 
+readlink_f () {
+  cd "$(dirname "$1")" > /dev/null
+  filename="$(basename "$1")"
+  if [ -h "$filename" ]; then
+    readlink_f "$(readlink "$filename")"
+  else
+    echo "`pwd -P`/$filename"
+  fi
+}
+
+do_parse_options() {
+  # ./get-elixir.sh 
+  #   (--unpack | -u)
+  #   (--source | -s | --binaries | -b)
+  #   (--release | -r) <release_number>
+  #   (--dir| -d) <dir>
+  #   ...
+  #   (--help | -h)
+  #   (--version | -v)
+  #   (--update-script)
+  
+  POS=1
+  while [ $POS -le $# ]; do
+    SKIP=1
+    eval "CURRENT=\${$POS}"
+    case "$CURRENT" in
+      -h|--help)
+          COMMAND="help"
+          break;
+          ;;
+      -v|--version)
+          COMMAND="version"
+          break
+          ;;
+      --update-script)
+          COMMAND="update-script"
+          break
+          ;;
+      -u|--unpack)
+          COMMAND="unpack"
+          ;;
+      -s|--source)
+          if [ "${PACKAGE_TYPE}" = "" ]; then
+            PACKAGE_TYPE="source"
+          elif [ "${PACKAGE_TYPE}" = "binaries" ]; then
+            PACKAGE_TYPE="binaries_source"
+          fi
+          ;;
+      -b|--binaries)
+          if [ "${PACKAGE_TYPE}" = "" ]; then
+            PACKAGE_TYPE="binaries"
+          elif [ "${PACKAGE_TYPE}" = "binaries" ]; then
+            PACKAGE_TYPE="binaries_source"
+          fi
+          ;;
+      -r|--release)
+          POS=$(expr $POS + 1)
+          eval "RELEASE=\${$POS}"
+          RELEASE=$(sanitize_release "${RELEASE}")
+          S=2
+          ;;
+      -d|--dir)
+          POS=$(expr $POS + 1)
+          eval "DIR=\${$POS}"
+          # expand dir
+          eval "DIR=${DIR}"
+          DIR=$(sanitize_dir "${DIR}")
+          SKIP=2
+          ;;
+      # TODO: add option to force curl to be silent
+      *)
+          # MAYBE: break on unrecognized option
+          break
+          ;;
+    esac
+    POS=$(expr $POS + $SKIP)
+  done
+}
+
+do_default_options() {
+  if [ "${COMMAND}" = "" ]; then
+    RELEASE="${DEFAULT_COMMAND}"
+  fi
+
+  if [ "${RELEASE}" = "" ]; then
+    RELEASE="${DEFAULT_RELEASE}"
+  fi
+
+  if [ "${DIR}" = "" ] ; then
+    # expand dir
+    eval "DIR=${DEFAULT_DIR}"
+    DIR=$(sanitize_dir "${DIR}")
+  fi
+}
+
+
 do_main() {
-  # check for help and version
-  case "$1" in
-    "help" | "--help" | "-h")
+  # Show short_help if no options provided
+  if [ $# = 0 ]; then
+    short_help >&2
+    exit_script
+  fi
+
+  do_parse_options "${@}"
+  do_default_options
+
+  # check for options that should return inmediately
+  case "${COMMAND}" in
+    help)
       help
       return 0
     ;;
 
-    "update-script" | "--update-script")
+    update-script)
       update_script
       return 0
     ;;
 
-    "version" | "--version" | "-v")
+    version)
       echo "${APP_NAME} – version ${APP_VERSION}"
       return 0
     ;;
   esac
 
-  # check for minimun number of args
-  if [ "$#" -lt 2 ]; then
-    short_help >&2
+  # Check for needed commands
+  if [ "${COMMAND}" = "" ]; then
+    echo "* [ERROR] Unrecognized <command> \"${COMMAND}\". Try 'unpack' or 'download'." >&2
+    exit_script
+  elif [ "${PACKAGE_TYPE}" = "" ]; then
+    echo "* [ERROR] Unrecognized <package_type> \"${PACKAGE_TYPE}\". Try 'binaries' or 'source'." >&2
     exit_script
   fi
 
-  # Get Variables from ARGS
-  COMMAND="$1"
-  PACKAGE_TYPE="$2"
-  if [ "$3" = "" ] || [ "$3" = "${DEFAULT_VERSION}" ]; then
+  # Get latest release if needed
+  if [ "${RELEASE}" = "latest" ]; then
     echo "* Retrieving version number of latest Elixir release..."
-    VERSION=$(get_latest_version)
-  else
-    VERSION=$(sanitize_version "$3")
+    RELEASE=$(get_latest_release)
   fi
 
-  if [ "$4" = "" ] ; then
-    eval "DEST_DIR=${DEFAULT_DEST_DIR}"
-  else
-    eval "DEST_DIR=$4"
-  fi
-  DEST_DIR=$(sanitize_dest_dir "$DEST_DIR")
-
-  # Check for unrecognized options
-  if [ "${COMMAND}" != "unpack" ] &&  [ "${COMMAND}" != "download" ]; then
-    echo "* [ERROR] Unrecognized <action> \"${COMMAND}\". Try 'unpack' or 'download'." >&2
-    exit_script
-  fi
-  
-  if [ "${PACKAGE_TYPE}" != "binaries" ] && [ "${PACKAGE_TYPE}" != "source" ] && [ "${PACKAGE_TYPE}" != "binaries_source" ]; then
-    echo "* [ERROR] Unrecognized <package_type> \"${PACKAGE_TYPE}\". Try 'binaries', 'source' or 'binaries_source'." >&2
-    exit_script
-  fi
-
-  # Define variables based on $VERSION
-  ELIXIR_RELEASE_TAG_URL="https://github.com/elixir-lang/elixir/releases/tag/v${VERSION}"
-  ELIXIR_TREE_URL="https://github.com/elixir-lang/elixir/tree/v${VERSION}"
+  # Define variables based on $RELEASE
+  ELIXIR_RELEASE_TAG_URL="https://github.com/elixir-lang/elixir/releases/tag/v${RELEASE}"
+  ELIXIR_TREE_URL="https://github.com/elixir-lang/elixir/tree/v${RELEASE}"
 
   # Do our logic
   case "${COMMAND}" in
     "download")
       case "${PACKAGE_TYPE}" in
         "binaries")
-          download_binaries "${VERSION}"
-          echo "* [OK] Elixir v${VERSION} [precompiled binaries]"
+          download_binaries "${RELEASE}"
+          echo "* [OK] Elixir v${RELEASE} [precompiled binaries]"
           echo "       ${ELIXIR_TREE_URL}"
           echo "       Downloaded: Precompiled.zip"
         ;;
 
         "source")
-          download_source "${VERSION}"
-          echo "* [OK] Elixir v${VERSION} [source code]"
+          download_source "${RELEASE}"
+          echo "* [OK] Elixir v${RELEASE} [source code]"
           echo "       ${ELIXIR_TREE_URL}"
-          echo "       Downloaded: v${VERSION}.tar.gz"
+          echo "       Downloaded: v${RELEASE}.tar.gz"
         ;;
 
         "binaries_source")
-          download_binaries "${VERSION}"
-          download_source "${VERSION}"
-          echo "* [OK] Elixir v${VERSION} [precompiled binaries & source code]"
+          download_binaries "${RELEASE}"
+          download_source "${RELEASE}"
+          echo "* [OK] Elixir v${RELEASE} [precompiled binaries & source code]"
           echo "       ${ELIXIR_TREE_URL}"
-          echo "       Downloaded: Precompiled.zip, v${VERSION}.tar.gz"
+          echo "       Downloaded: Precompiled.zip, v${RELEASE}.tar.gz"
         ;;
       esac
     ;;
 
     "unpack")
+      # TODO: CONFIRM files are gonna be replace if DIR is not empty
+      # TODO: create an option to skip this confirmation
       case "${PACKAGE_TYPE}" in
         "binaries")
-          download_binaries "${VERSION}"
-          unpack_binaries "${DEST_DIR}"
-          echo "* [OK] Elixir v${VERSION} [precompiled binaries]"
+          download_binaries "${RELEASE}"
+          unpack_binaries "${DIR}"
+          echo "* [OK] Elixir v${RELEASE} [precompiled binaries]"
           echo "       ${ELIXIR_TREE_URL}"
-          echo "       Files have been unpacked to: ${DEST_DIR}/"
+          echo "       Files have been unpacked to: ${DIR}/"
         ;;
 
         "source")
-          download_source "${VERSION}"
-          unpack_source "${VERSION}" "${DEST_DIR}"
-          echo "* [OK] Elixir v${VERSION} [Source]"
+          download_source "${RELEASE}"
+          unpack_source "${RELEASE}" "${DIR}"
+          echo "* [OK] Elixir v${RELEASE} [Source]"
           echo "       ${ELIXIR_TREE_URL}"
-          echo "       Files have been unpacked to: ${DEST_DIR}/"
+          echo "       Files have been unpacked to: ${DIR}/"
         ;;
 
         "binaries_source")
-          download_binaries "${VERSION}"
-          unpack_binaries "${DEST_DIR}"
-          download_source "${VERSION}"
-          unpack_source "${VERSION}" "${DEST_DIR}"
-          echo "* [OK] Elixir v${VERSION} [precompiled binaries & source code]"
+          download_binaries "${RELEASE}"
+          unpack_binaries "${DIR}"
+          download_source "${RELEASE}"
+          unpack_source "${RELEASE}" "${DIR}"
+          echo "* [OK] Elixir v${RELEASE} [precompiled binaries & source code]"
           echo "       ${ELIXIR_TREE_URL}"
-          echo "       Files have been unpacked to: ${DEST_DIR}/"
+          echo "       Files have been unpacked to: ${DIR}/"
         ;;
       esac
       ;;
   esac
 }
 
+SELF=$(readlink_f "$0")
+SCRIPT_PATH=$(dirname "$SELF")
 do_main $*
 exit 0
