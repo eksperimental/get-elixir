@@ -8,14 +8,14 @@ APP_VERSION="0.0.4-dev"
 APP_COMMAND="./get-elixir.sh"
 APP_REPO_USER="eksperimental"
 APP_URL="https://github.com/${APP_REPO_USER}/${APP_NAME}"
-APP_GIT_URL="${APP_URL}.git"
-APP_SCRIPT_URL="${APP_URL}/raw/master/get-elixir.sh"
-APP_SCRIPT=$(basename "${APP_SCRIPT_URL}")
+#APP_GIT_URL="${APP_URL}.git"
+#APP_SCRIPT_URL="${APP_URL}/raw/master/get-elixir.sh"
+#APP_SCRIPT=$(basename "${APP_SCRIPT_URL}")
 APP_RELEASES_URL="https://github.com/${APP_REPO_USER}/${APP_NAME}/releases"
 ELIXIR_CSV_URL="https://github.com/elixir-lang/elixir-lang.github.com/raw/master/elixir.csv"
 ELIXIR_RELEASES_URL="https://github.com/elixir-lang/elixir/releases"
-ELIXIR_RELEASE_TAG_URL=""
-ELIXIR_TREE_URL=""
+#ELIXIR_RELEASE_TAG_URL=""
+#ELIXIR_TREE_URL=""
 SELF=""
 SCRIPT_PATH=""
 
@@ -139,7 +139,8 @@ get_latest_script_version() {
     echo "* [ERROR] Latest ${APP_NAME} release number couldn't be retrieved from ${APP_RELEASES_URL}" >&2
     exit_script
   else
-    echo "$(sanitize_release "${release}")"
+    #echo "$(sanitize_release "${release}")"
+    sanitize_release "${release}"
   fi
 }
 
@@ -176,10 +177,10 @@ download_binaries() {
 unpack_source() {
   local release="$1"
   local dir="$2"
-  tar -xzf v${release}.tar.gz && 
-  mkdir -p ${dir} && 
-  cp -rf elixir-${release}/* ${dir} && 
-  rm -rf elixir-${release}/ || (
+  tar -xzf "v${release}.tar.gz" && 
+  mkdir -p "${dir}" && 
+  cp -rf elixir-"${release}"/* "${dir}" && 
+  rm -rf elixir-"${release}"/ || (
     echo "* [ERROR] \"v${release}.tar.gz\" could not be unpacked to ${dir}" >&2
     echo "          Check the file permissions." >&2
     exit_script
@@ -188,8 +189,8 @@ unpack_source() {
 
 unpack_binaries() {
   local dir="$1"
-  mkdir -p ${dir} && 
-  unzip -o -q -d ${dir} Precompiled.zip || (
+  mkdir -p "${dir}" && 
+  unzip -o -q -d "${dir}" Precompiled.zip || (
     echo "* [ERROR] \"Precompiled.zip\" could not be unpacked to ${dir}" >&2
     echo "          Check the file permissions." >&2
     exit_script
@@ -225,10 +226,11 @@ update_script() {
 }
 
 confirm() {
-  local response=""
-  read -p "${1} [Y/N]: " response
-  #echo ${response}
-  if printf "%s\n" "${response}" | grep -Eq "^[yY].*"; then
+  local reply=""
+  #read -p "${1} [Y/N]: " reply
+  echo -n "${1} [Y/N]: " 
+  read reply
+  if printf "%s\n" "${reply}" | grep -Eq "^[yY].*"; then
     return 0
   else
     return 1
@@ -241,7 +243,7 @@ readlink_f () {
   if [ -h "$filename" ]; then
     readlink_f "$(readlink "$filename")"
   else
-    echo "`pwd -P`/$filename"
+    echo "$(pwd -P)/${filename}"
   fi
 }
 
@@ -291,26 +293,25 @@ do_parse_options() {
           fi
           ;;
       -r|--release)
-          POS=$(expr $POS + 1)
+          POS=$((POS + 1))
           eval "RELEASE=\${$POS}"
           RELEASE=$(sanitize_release "${RELEASE}")
-          S=2
+          SKIP=2
           ;;
       -d|--dir)
-          POS=$(expr $POS + 1)
+          POS=$((POS + 1))
           eval "DIR=\${$POS}"
           # expand dir
           eval "DIR=${DIR}"
           DIR=$(sanitize_dir "${DIR}")
           SKIP=2
           ;;
-      # TODO: add option to force curl to be silent
       *)
           # MAYBE: break on unrecognized option
           break
           ;;
     esac
-    POS=$(expr $POS + $SKIP)
+    POS=$((POS + SKIP))
   done
 }
 
@@ -375,7 +376,7 @@ do_main() {
   fi
 
   # Define variables based on $RELEASE
-  ELIXIR_RELEASE_TAG_URL="https://github.com/elixir-lang/elixir/releases/tag/v${RELEASE}"
+  #ELIXIR_RELEASE_TAG_URL="https://github.com/elixir-lang/elixir/releases/tag/v${RELEASE}"
   ELIXIR_TREE_URL="https://github.com/elixir-lang/elixir/tree/v${RELEASE}"
 
   # Do our logic
@@ -442,5 +443,5 @@ do_main() {
 
 SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
-do_main $*
+do_main "$@"
 exit 0
