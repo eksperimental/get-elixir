@@ -56,8 +56,9 @@ help() {
     unpack        Downloads the package and unpacks it
 
   Package Types:
-    source        Source code
-    binaries      Precompiled binaries
+    binaries         Precompiled binaries
+    source           Source code
+    binaries_source  Precompiled binaries and source code
 
   Version Number:
     'latest' is the default option, and it's not required to specify it
@@ -103,6 +104,17 @@ sanitize_dest_dir() {
   printf '%s' "$1" | sed -e 's@/$@@g'
 }
 
+get_elixir_final_release_versions() {
+  local versions
+  versions=$(curl -sfL "${ELIXIR_CSV_URL}" | tail -n +2 | cut -d , -f1)
+  if [ "${versions}" = "" ]; then
+    echo "* [ERROR] Elixir's final release version numbers couldn't be retrieved from ${ELIXIR_CSV_URL}" >&2
+    exit_script
+  else
+    echo "${versions}"
+  fi
+}
+
 get_latest_version() {
   local version
   version=$(curl -sfL "${ELIXIR_CSV_URL}" | sed '2q;d' | cut -d , -f1)
@@ -124,7 +136,6 @@ get_latest_script_version() {
     echo "$(sanitize_version "${version}")"
   fi
 }
-
 
 download_source() {
   local version="$1"
@@ -254,10 +265,11 @@ do_main() {
   fi
 
   if [ "$4" = "" ] ; then
-    DEST_DIR="${DEFAULT_DEST_DIR}"
+    eval "DEST_DIR=${DEFAULT_DEST_DIR}"
   else
-    DEST_DIR=$(sanitize_dest_dir "$4")
+    eval "DEST_DIR=$4"
   fi
+  DEST_DIR=$(sanitize_dest_dir "$DEST_DIR")
 
   # Check for unrecognized options
   if [ "${COMMAND}" != "unpack" ] &&  [ "${COMMAND}" != "download" ]; then
@@ -265,8 +277,8 @@ do_main() {
     exit_script
   fi
   
-  if [ "${PACKAGE_TYPE}" != "source" ] &&  [ "${PACKAGE_TYPE}" != "binaries" ]; then
-    echo "* [ERROR] Unrecognized <package_type> \"${PACKAGE_TYPE}\". Try 'source' or 'binaries'." >&2
+  if [ "${PACKAGE_TYPE}" != "binaries" ] && [ "${PACKAGE_TYPE}" != "source" ] && [ "${PACKAGE_TYPE}" != "binaries_source" ]; then
+    echo "* [ERROR] Unrecognized <package_type> \"${PACKAGE_TYPE}\". Try 'binaries', 'source' or 'binaries_source'." >&2
     exit_script
   fi
 
@@ -278,6 +290,13 @@ do_main() {
   case "${COMMAND}" in
     "download")
       case "${PACKAGE_TYPE}" in
+        "binaries")
+          download_binaries "${VERSION}"
+          echo "* [OK] Elixir v${VERSION} [precompiled binaries]"
+          echo "       ${ELIXIR_TREE_URL}"
+          echo "       Downloaded: Precompiled.zip"
+        ;;
+
         "source")
           download_source "${VERSION}"
           echo "* [OK] Elixir v${VERSION} [source code]"
@@ -285,17 +304,26 @@ do_main() {
           echo "       Downloaded: v${VERSION}.tar.gz"
         ;;
 
-        "binaries")
+        "binaries_source")
           download_binaries "${VERSION}"
-          echo "* [OK] Elixir v${VERSION} [precompiled binaries]"
+          download_source "${VERSION}"
+          echo "* [OK] Elixir v${VERSION} [precompiled binaries & source code]"
           echo "       ${ELIXIR_TREE_URL}"
-          echo "       Downloaded: Precompiled.zip"
+          echo "       Downloaded: Precompiled.zip, v${VERSION}.tar.gz"
         ;;
       esac
     ;;
 
     "unpack")
       case "${PACKAGE_TYPE}" in
+        "binaries")
+          download_binaries "${VERSION}"
+          unpack_binaries "${DEST_DIR}"
+          echo "* [OK] Elixir v${VERSION} [precompiled binaries]"
+          echo "       ${ELIXIR_TREE_URL}"
+          echo "       Files have been unpacked to: ${DEST_DIR}/"
+        ;;
+
         "source")
           download_source "${VERSION}"
           unpack_source "${VERSION}" "${DEST_DIR}"
@@ -304,10 +332,12 @@ do_main() {
           echo "       Files have been unpacked to: ${DEST_DIR}/"
         ;;
 
-        "binaries")
+        "binaries_source")
           download_binaries "${VERSION}"
           unpack_binaries "${DEST_DIR}"
-          echo "* [OK] Elixir v${VERSION} [precompiled binaries]"
+          download_source "${VERSION}"
+          unpack_source "${VERSION}" "${DEST_DIR}"
+          echo "* [OK] Elixir v${VERSION} [precompiled binaries & source code]"
           echo "       ${ELIXIR_TREE_URL}"
           echo "       Files have been unpacked to: ${DEST_DIR}/"
         ;;

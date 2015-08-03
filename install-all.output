@@ -1,0 +1,79 @@
+$ ./install-all.sh 
+* Downloading https://github.com/elixir-lang/elixir/releases/download/v1.0.5/Precompiled.zip
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   394    0   394    0     0    177      0 --:--:--  0:00:02 --:--:--   177
+100 2621k  100 2621k    0     0   126k      0  0:00:20  0:00:20 --:--:--  248k
+* Downloading https://github.com/elixir-lang/elixir/archive/v1.0.5.tar.gz
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   126    0   126    0     0     46      0 --:--:--  0:00:02 --:--:--    46
+100 1018k  100 1018k    0     0   144k      0  0:00:07  0:00:07 --:--:--  283k
+* [OK] Elixir v1.0.5 [precompiled binaries & source code]
+       https://github.com/elixir-lang/elixir/tree/v1.0.5
+       Files have been unpacked to: /home/eksperimental/.exenv/versions/1.0.5/
+* Downloading https://github.com/elixir-lang/elixir/releases/download/v1.0.4/Precompiled.zip
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   392    0   392    0     0    237      0 --:--:--  0:00:01 --:--:--   237
+100 2608k  100 2608k    0     0   183k      0  0:00:14  0:00:14 --:--:--  231k
+* Downloading https://github.com/elixir-lang/elixir/archive/v1.0.4.tar.gz
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   126    0   126    0     0     74      0 --:--:--  0:00:01 --:--:--    73
+100 1016k  100 1016k    0     0   129k      0  0:00:07  0:00:07 --:--:--  236k
+* [OK] Elixir v1.0.4 [precompiled binaries & source code]
+       https://github.com/elixir-lang/elixir/tree/v1.0.4
+       Files have been unpacked to: /home/eksperimental/.exenv/versions/1.0.4/
+* Downloading https://github.com/elixir-lang/elixir/releases/download/v1.0.3/Precompiled.zip
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   396    0   396    0     0    246      0 --:--:--  0:00:01 --:--:--   246
+100 2600k  100 2600k    0     0   181k      0  0:00:14  0:00:14 --:--:--  402k
+* Downloading https://github.com/elixir-lang/elixir/archive/v1.0.3.tar.gz
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   126    0   126    0     0     71      0 --:--:--  0:00:01 --:--:--    71
+100 1014k    0 1014k    0     0  94598      0 --:--:--  0:00:10 --:--:--  162k
+* [OK] Elixir v1.0.3 [precompiled binaries & source code]
+       https://github.com/elixir-lang/elixir/tree/v1.0.3
+       Files have been unpacked to: /home/eksperimental/.exenv/versions/1.0.3/
+* Downloading https://github.com/elixir-lang/elixir/releases/download/v1.0.2/Precompiled.zip
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   394    0   394    0     0    236      0 --:--:--  0:00:01 --:--:--   236
+100 2604k  100 2604k    0     0   150k      0  0:00:17  0:00:17 --:--:--  239k
+* Downloading https://github.com/elixir-lang/elixir/archive/v1.0.2.tar.gz
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   126    0   126    0     0     78      0 --:--:--  0:00:01 --:--:--    78
+100 1009k    0 1009k    0     0   140k      0 --:--:--  0:00:07 --:--:--  225k
+* [OK] Elixir v1.0.2 [precompiled binaries & source code]
+       https://github.com/elixir-lang/elixir/tree/v1.0.2
+       Files have been unpacked to: /home/eksperimental/.exenv/versions/1.0.2/
+* Downloading https://github.com/elixir-lang/elixir/releases/download/v1.0.1/Precompiled.zip
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   394    0   394    0     0    234      0 --:--:--  0:00:01 --:--:--   234
+100 2602k  100 2602k    0     0   154k      0  0:00:16  0:00:16 --:--:--  369k
+* Downloading https://github.com/elixir-lang/elixir/archive/v1.0.1.tar.gz
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   126    0   126    0     0     79      0 --:--:--  0:00:01 --:--:--    79
+100 1009k    0 1009k    0     0   133k      0 --:--:--  0:00:07 --:--:--  239k
+* [OK] Elixir v1.0.1 [precompiled binaries & source code]
+       https://github.com/elixir-lang/elixir/tree/v1.0.1
+       Files have been unpacked to: /home/eksperimental/.exenv/versions/1.0.1/
+* Downloading https://github.com/elixir-lang/elixir/releases/download/v1.0.0/Precompiled.zip
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   394    0   394    0     0    251      0 --:--:--  0:00:01 --:--:--   251
+100 2571k  100 2571k    0     0   133k      0  0:00:19  0:00:19 --:--:--  301k
+* Downloading https://github.com/elixir-lang/elixir/archive/v1.0.0.tar.gz
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   126    0   126    0     0     77      0 --:--:--  0:00:01 --:--:--    77
+100 1007k    0 1007k    0     0   161k      0 --:--:--  0:00:06 --:--:--  286k
+* [OK] Elixir v1.0.0 [precompiled binaries & source code]
+       https://github.com/elixir-lang/elixir/tree/v1.0.0
+       Files have been unpacked to: /home/eksperimental/.exenv/versions/1.0.0/

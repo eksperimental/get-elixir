@@ -12,7 +12,7 @@ It is your duty, though, to [set the PATH environmental variable](http://elixir-
 
 If you are interested in only getting Elixir once, you may execute the [one-liner commands](one-liner.md) that can be directly pasted into your command line, without having to download any script.
 
-It can also be of interest to developers who need maintain different of versions of Elixir, without the need to build them, to use in conjuntion with an Elixir version manager like [exevn](https://github.com/mururu/exenv).  
+It can also be of interest to developers who need maintain different of versions of Elixir, without the need to build them, to use in conjuntion with an Elixir version manager like [exevn](https://github.com/mururu/exenv). See the [Examples – Advanced](#examples-advanced) section for more on this.
 
 ## Installation
 
@@ -50,8 +50,28 @@ The \<package_type\> can be the `source` code that you can use to compile Elixir
 # unpack the latest precompiled binaries
 ./get-elixir.sh unpack binaries
 
+# unpack the latest precompiled binaries and source code
+./get-elixir.sh unpack binaries_source
+
 # unpack the precompiled binaries of v1.0.0 to dir `./elixir-1.0.0/`
 ./get-elixir.sh unpack binaries 1.0.0 elixir-1.0.0
+```
+
+## Examples – Advanced
+
+Lets say you want to use it in conjunction with an Elixir version manager like [exevn](https://github.com/mururu/exenv).
+
+The following commands will download every final version released (ie. not release candidates), unpack them and update `exenv`.
+
+_Please make sure you have followed the [exenv installation instructions](https://github.com/mururu/exenv#section_2)_
+
+```sh
+url="https://github.com/elixir-lang/elixir-lang.github.com/raw/master/elixir.csv"
+versions=$(curl -sfL "${url}" | tail -n +2 | cut -d , -f1)
+for version in $versions; do
+  ./get-elixir.sh unpack binaries_source "${version}" "~/.exenv/versions/${version}"
+done
+exenv rehash
 ```
 
 ## Additional Commands
