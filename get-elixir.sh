@@ -12,6 +12,7 @@ APP_URL="https://github.com/${APP_REPO_USER}/${APP_NAME}"
 #APP_SCRIPT_URL="${APP_URL}/raw/master/get-elixir.sh"
 #APP_SCRIPT=$(basename "${APP_SCRIPT_URL}")
 APP_RELEASES_URL="https://github.com/${APP_REPO_USER}/${APP_NAME}/releases"
+APP_RELEASES_JSON_URL="https://api.github.com/repos/elixir-lang/elixir/releases"
 ELIXIR_CSV_URL="https://github.com/elixir-lang/elixir-lang.github.com/raw/master/elixir.csv"
 ELIXIR_RELEASES_URL="https://github.com/elixir-lang/elixir/releases"
 #ELIXIR_RELEASE_TAG_URL=""
@@ -59,7 +60,7 @@ help() {
     -b, --binaries       Download precompiled binaries
     -s, --source         Download source code
   
-  Options:
+  Main Options:
     -u, --unpack         Unpacks the package(s) once downloaded
     -r, --release        Elixir release number
                          'latest' is the default option
@@ -67,10 +68,12 @@ help() {
     -d, --dir            Directory where you want to unpack Elixir.
                          Default value: '${DEFAULT_DIR}'
   
-  Other Options:
-    -h, --help           Prints help menu
-        --update-script  Replace this script by downloading the latest release
-    -v, --version        Prints script version
+  Secondary Options:
+    -h, --help                 Prints help menu
+        --update-script        Replace this script by downloading the latest release
+        --list-releases        Lists all Elixir releases (final and pre-releases)
+        --list-final-releases  Lists final Elixir releases
+    -v, --version              Prints script version
 
   Usage Examples:
 
@@ -110,17 +113,6 @@ sanitize_dir() {
   printf '%s' "$1" | sed -e 's@/$@@g'
 }
 
-get_elixir_final_release_releases() {
-  local releases
-  releases=$(curl -sfL "${ELIXIR_CSV_URL}" | tail -n +2 | cut -d , -f1)
-  if [ "${releases}" = "" ]; then
-    echo "* [ERROR] Elixir's final release numbers couldn't be retrieved from ${ELIXIR_CSV_URL}" >&2
-    exit_script
-  else
-    echo "${releases}"
-  fi
-}
-
 get_latest_release() {
   local release
   release=$(curl -sfL "${ELIXIR_CSV_URL}" | sed '2q;d' | cut -d , -f1)
@@ -132,14 +124,37 @@ get_latest_release() {
   fi
 }
 
-get_latest_script_version() {
-  #release=$(curl -s -fL "${APP_RELEASES_URL}" | grep browser_download_url | head -n 1 | cut -d '"' -f 4)
-  local release=$(curl -sfI "${APP_RELEASES_URL}/latest" |  grep "Location: " | tr '\r' '\0' | tr '\n' '\0' | rev | cut -d'/' -f1 | rev)
-  if [ "${release}" = "" ]; then
-    echo "* [ERROR] Latest ${APP_NAME} release number couldn't be retrieved from ${APP_RELEASES_URL}" >&2
+get_elixir_final_releases() {
+  local releases
+  releases=$(curl -sfL "${ELIXIR_CSV_URL}" | tail -n +2 | cut -d , -f1)
+  if [ "${releases}" = "" ]; then
+    echo "* [ERROR] Elixir's final release numbers couldn't be retrieved from" >&2
+    echo "  ${ELIXIR_CSV_URL}" >&2
     exit_script
   else
-    #echo "$(sanitize_release "${release}")"
+    echo "${releases}"
+  fi
+}
+
+get_elixir_releases() {
+  local releases
+  releases=$(curl -sfL "${APP_RELEASES_JSON_URL}" | grep "tag_name" | cut -d':' -f2 | sed 's@ \{1,\}"@@g' | sed 's@",@@g')
+  if [ "${releases}" = "" ]; then
+    echo "* [ERROR] Elixir release numbers couldn't be retrieved from" >&2
+    echo "  ${APP_RELEASES_JSON_URL}" >&2
+    exit_script
+  else
+    echo "${releases}"
+  fi
+}
+
+get_latest_script_version() {
+  local release=$(curl -sfI "${APP_RELEASES_URL}/latest" |  grep "Location: " | tr '\r' '\0' | tr '\n' '\0' | rev | cut -d'/' -f1 | rev)
+  if [ "${release}" = "" ]; then
+    echo "* [ERROR] Latest ${APP_NAME} release number couldn't be retrieved from" >&2
+    echo "  ${APP_RELEASES_URL}" >&2
+    exit_script
+  else
     sanitize_release "${release}"
   fi
 }
@@ -163,8 +178,8 @@ download_binaries() {
   local release="$1"
   local url="https://github.com/elixir-lang/elixir/releases/download/v${release}/Precompiled.zip"
   echo "* Downloading ${url}"
-  curl -fL -O "${url}"
-  if [ ! -f Precompiled.zip ]; then
+  curl -fL -o "Precompiled-v${release}.zip" "${url}"
+  if [ ! -f "Precompiled-v${release}.zip" ]; then
     echo "* [ERROR] Elixir v${RELEASE} could not be downloaded from ${url}" >&2
     if [ "${RELEASE}" != "${DEFAULT_RELEASE}" ]; then
     echo "          Please make sure release number is a valid one, by finding it in:" >&2
@@ -189,9 +204,10 @@ unpack_source() {
 
 unpack_binaries() {
   local dir="$1"
+  local file="Precompiled-v${release}.zip"
   mkdir -p "${dir}" && 
-  unzip -o -q -d "${dir}" Precompiled.zip || (
-    echo "* [ERROR] \"Precompiled.zip\" could not be unpacked to ${dir}" >&2
+  unzip -o -q -d "${dir}" "${file}" || (
+    echo "* [ERROR] \"${file}\" could not be unpacked to ${dir}" >&2
     echo "          Check the file permissions." >&2
     exit_script
   )
@@ -274,6 +290,14 @@ do_parse_options() {
           COMMAND="update-script"
           break
           ;;
+      --list-releases)
+          COMMAND="list-releases"
+          break;
+          ;;
+      --list-final-releases)
+          COMMAND="list-final-releases"
+          break;
+          ;;
       -u|--unpack)
           COMMAND="unpack"
           ;;
@@ -355,6 +379,16 @@ do_main() {
 
     version)
       echo "${APP_NAME} – version ${APP_VERSION}"
+      return 0
+    ;;
+
+    list-releases)
+      get_elixir_releases
+      return 0
+    ;;
+
+    list-final-releases)
+      get_elixir_final_releases
       return 0
     ;;
   esac

@@ -4,3 +4,4 @@
 /v*.tar.gz
 /v*.zip
 elixir.csv
+releases
