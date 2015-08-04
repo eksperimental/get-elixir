@@ -20,17 +20,17 @@ ELIXIR_RELEASES_URL="https://github.com/elixir-lang/elixir/releases"
 SELF=""
 SCRIPT_PATH=""
 
-#DEFAULT
-DEFAULT_COMMAND="download"
-DEFAULT_DIR="elixir"
-DEFAULT_RELEASE="latest"
 
-#ARGS VARIABLES
-COMMAND=""
-PACKAGE_TYPE=""
-RELEASE=""
-DIR=""
-
+#ARGS VARIABLES + DEFAULT 
+do_instantiate_vars() {
+  COMMAND="download"
+  PACKAGE_TYPE=""
+  RELEASE="latest"
+  DIR="elixir" #<== do no use trailing slashes
+  #eval "DIR=~/.elixir"  #<== needed to expand, in case we use "~" in default dir
+  SILENT_DOWNLOAD=1
+  DOWNLOAD_COMMAND_OPTIONS="-fL"
+}
 
 # FUNCTIONS
 
@@ -73,6 +73,7 @@ help() {
         --update-script        Replace this script by downloading the latest release
         --list-releases        Lists all Elixir releases (final and pre-releases)
         --list-final-releases  Lists final Elixir releases
+        --silent-download      Silent download (Hide status)
     -v, --version              Prints script version
 
   Usage Examples:
@@ -159,11 +160,18 @@ get_latest_script_version() {
   fi
 }
 
+set_download_command_options() {
+  if [ $SILENT_DOWNLOADING = 0 ]; then
+    DOWNLOAD_COMMAND_OPTIONS="${DOWNLOAD_COMMAND_OPTIONS} -s"
+  fi
+  return 0
+}
+
 download_source() {
   local release="$1"
   local url="https://github.com/elixir-lang/elixir/archive/v${release}.tar.gz"
   echo "* Downloading ${url}"
-  curl -fL -O "${url}"
+  curl ${DOWNLOAD_COMMAND_OPTIONS} -O "${url}"
   if [ ! -f "v${release}.tar.gz" ]; then
     echo "* [ERROR] Elixir v${RELEASE} could not be downloaded from ${url}" >&2
     if [ "${RELEASE}" != "${DEFAULT_RELEASE}" ]; then
@@ -178,7 +186,7 @@ download_binaries() {
   local release="$1"
   local url="https://github.com/elixir-lang/elixir/releases/download/v${release}/Precompiled.zip"
   echo "* Downloading ${url}"
-  curl -fL -o "Precompiled-v${release}.zip" "${url}"
+  curl ${DOWNLOAD_COMMAND_OPTIONS} -o "Precompiled-v${release}.zip" "${url}"
   if [ ! -f "Precompiled-v${release}.zip" ]; then
     echo "* [ERROR] Elixir v${RELEASE} could not be downloaded from ${url}" >&2
     if [ "${RELEASE}" != "${DEFAULT_RELEASE}" ]; then
@@ -214,7 +222,7 @@ unpack_binaries() {
 }
 
 update_script() {
-  echo "* Retrieving version number of latest ${APP_NAME} release..."
+  echo "* Retrieving latest ${APP_NAME} release number..."
   local latest_script_version=$(get_latest_script_version)
   local remote_script_url="${APP_URL}/raw/v${latest_script_version}/get-elixir.sh"
   
@@ -222,7 +230,7 @@ update_script() {
     confirm "* You are about to replace '${SCRIPT_PATH}'.
   Current version: ${APP_VERSION} / Newest version:  ${latest_script_version}
   Do you confirm?" && (
-      curl -fL -o "${SCRIPT_PATH}" "${remote_script_url}" && (
+      curl ${DOWNLOAD_COMMAND_OPTIONS} -o "${SCRIPT_PATH}" "${remote_script_url}" && (
         chmod +x "${SCRIPT_PATH}"
         echo "* [OK] ${APP_NAME} succesfully updated."
         return 0
@@ -329,6 +337,10 @@ do_parse_options() {
           DIR="$(sanitize_dir "${DIR}")"
           SKIP=2
           ;;
+      --silent-download)
+          SILENT_DOWNLOADING=0
+          break;
+          ;;
       *)
           # MAYBE: break on unrecognized option
           break
@@ -338,23 +350,6 @@ do_parse_options() {
   done
 }
 
-do_default_options() {
-  if [ "${COMMAND}" = "" ]; then
-    RELEASE="${DEFAULT_COMMAND}"
-  fi
-
-  if [ "${RELEASE}" = "" ]; then
-    RELEASE="${DEFAULT_RELEASE}"
-  fi
-
-  if [ "${DIR}" = "" ] ; then
-    # expand dir
-    eval "DIR=${DEFAULT_DIR}"
-    DIR="$(sanitize_dir "${DIR}")"
-  fi
-}
-
-
 do_main() {
   # Show short_help if no options provided
   if [ $# = 0 ]; then
@@ -362,8 +357,9 @@ do_main() {
     exit_script
   fi
 
+  do_instantiate_vars
   do_parse_options "$@"
-  do_default_options
+  set_download_command_options
 
   # check for options that should return inmediately
   case "${COMMAND}" in
@@ -371,22 +367,18 @@ do_main() {
       help
       return 0
     ;;
-
     update-script)
       update_script
       return 0
     ;;
-
     version)
       echo "${APP_NAME} – version ${APP_VERSION}"
       return 0
     ;;
-
     list-releases)
       get_elixir_releases
       return 0
     ;;
-
     list-final-releases)
       get_elixir_final_releases
       return 0
@@ -404,7 +396,7 @@ do_main() {
 
   # Get latest release if needed
   if [ "${RELEASE}" = "latest" ]; then
-    echo "* Retrieving version number of latest Elixir release..."
+    echo "* Retrieving latest Elixir release number..."
     RELEASE=$(get_latest_release)
   fi
 

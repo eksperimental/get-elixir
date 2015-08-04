@@ -3,7 +3,7 @@ TODO
 
 [x] "--list-releases"  (reads from the github JSON file)
 [x] "--list-final-releases"  (reads from the CSV file)
-[ ] "--silent-downloading"  add option to force curl to be silent while downloading
+[x] "--silent-download"  add option to force curl to be silent while downloading
 [ ] "--verbose" Add option to be verbose when unpacking files 
 [ ] "-y, --dont-ask" Avoid Confirmations and assumes always yes. Choose a better name for the option.
 [ ] Confirm files are gonna be replaced if DIR is not empty when unpacking
