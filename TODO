@@ -5,7 +5,7 @@ TODO
 [x] "--list-final-releases"  (reads from the CSV file)
 [x] "--silent-download"  add option to force curl to be silent while downloading
 [ ] "--verbose" Add option to be verbose when unpacking files 
-[ ] "-y, --dont-ask" Avoid Confirmations and assumes always yes. Choose a better name for the option.
+[x] "-y, --assume-yes" Avoid Confirmations and assume always yes.
 [ ] Confirm files are gonna be replaced if DIR is not empty when unpacking
 [ ] "--dir-keep" Where to keep downloaded files
 [ ] Create Makefile. Targets:

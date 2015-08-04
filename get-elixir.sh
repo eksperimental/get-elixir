@@ -21,15 +21,18 @@ SELF=""
 SCRIPT_PATH=""
 
 
+DEFAULT_RELEASE="latest"
+
 #ARGS VARIABLES + DEFAULT 
 do_instantiate_vars() {
   COMMAND="download"
   PACKAGE_TYPE=""
-  RELEASE="latest"
+  RELEASE="${DEFAULT_RELEASE}"
   DIR="elixir" #<== do no use trailing slashes
   #eval "DIR=~/.elixir"  #<== needed to expand, in case we use "~" in default dir
   SILENT_DOWNLOAD=1
   DOWNLOAD_COMMAND_OPTIONS="-fL"
+  ASSUME_YES=1
 }
 
 # FUNCTIONS
@@ -66,7 +69,7 @@ help() {
                          'latest' is the default option
                          Examples: 'latest', '1.0.5', '1.0.0-rc2'
     -d, --dir            Directory where you want to unpack Elixir.
-                         Default value: '${DEFAULT_DIR}'
+                         Default value: '${DIR}'
   
   Secondary Options:
     -h, --help                 Prints help menu
@@ -74,6 +77,7 @@ help() {
         --list-releases        Lists all Elixir releases (final and pre-releases)
         --list-final-releases  Lists final Elixir releases
         --silent-download      Silent download (Hide status)
+    -y, --assume-yes           Assume 'Yes' to all confirmations, and do not prompt
     -v, --version              Prints script version
 
   Usage Examples:
@@ -161,7 +165,7 @@ get_latest_script_version() {
 }
 
 set_download_command_options() {
-  if [ $SILENT_DOWNLOADING = 0 ]; then
+  if [ "${SILENT_DOWNLOAD}" = 0 ]; then
     DOWNLOAD_COMMAND_OPTIONS="${DOWNLOAD_COMMAND_OPTIONS} -s"
   fi
   return 0
@@ -227,11 +231,11 @@ update_script() {
   local remote_script_url="${APP_URL}/raw/v${latest_script_version}/get-elixir.sh"
   
   if [ "${latest_script_version}" != "${APP_VERSION}" ]; then
-    confirm "* You are about to replace '${SCRIPT_PATH}'.
+    confirm "* You are about to replace '${SELF}'.
   Current version: ${APP_VERSION} / Newest version:  ${latest_script_version}
   Do you confirm?" && (
-      curl ${DOWNLOAD_COMMAND_OPTIONS} -o "${SCRIPT_PATH}" "${remote_script_url}" && (
-        chmod +x "${SCRIPT_PATH}"
+      curl ${DOWNLOAD_COMMAND_OPTIONS} -o "${SELF}" "${remote_script_url}" && (
+        chmod +x "${SELF}"
         echo "* [OK] ${APP_NAME} succesfully updated."
         return 0
       ) || (
@@ -250,13 +254,17 @@ update_script() {
 }
 
 confirm() {
-  local reply=""
-  printf '%s [Y/N]: ' "${1}"
-  read reply
-  if printf '%s\n' "${reply}" | grep -Eq '^[yY].*'; then
+  if [ "${ASSUME_YES}" = 0 ]; then
     return 0
   else
-    return 1
+    local reply=""
+    printf '%s [Y/N]: ' "${1}"
+    read reply
+    if printf '%s\n' "${reply}" | grep -Eq '^[yY].*'; then
+      return 0
+    else
+      return 1
+    fi
   fi
 }
 
@@ -286,16 +294,13 @@ do_parse_options() {
     SKIP=1
     eval "CURRENT=\${$POS}"
     case "${CURRENT}" in
+      # Options that do not combine with no other options
       -h|--help)
           COMMAND="help"
           break;
           ;;
       -v|--version)
           COMMAND="version"
-          break
-          ;;
-      --update-script)
-          COMMAND="update-script"
           break
           ;;
       --list-releases)
@@ -305,6 +310,18 @@ do_parse_options() {
       --list-final-releases)
           COMMAND="list-final-releases"
           break;
+          ;;
+
+       # Options that do combine with other options
+      --silent-download)
+          SILENT_DOWNLOAD=0
+          ;;
+      -y|--assume-yes)
+          ASSUME_YES=0
+          ;;
+
+      --update-script)
+          COMMAND="update-script"
           ;;
       -u|--unpack)
           COMMAND="unpack"
@@ -337,10 +354,6 @@ do_parse_options() {
           DIR="$(sanitize_dir "${DIR}")"
           SKIP=2
           ;;
-      --silent-download)
-          SILENT_DOWNLOADING=0
-          break;
-          ;;
       *)
           # MAYBE: break on unrecognized option
           break
@@ -367,12 +380,12 @@ do_main() {
       help
       return 0
     ;;
-    update-script)
-      update_script
-      return 0
-    ;;
     version)
       echo "${APP_NAME} – version ${APP_VERSION}"
+      return 0
+    ;;
+    update-script)
+      update_script
       return 0
     ;;
     list-releases)
