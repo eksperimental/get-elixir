@@ -6,20 +6,13 @@ export TOP_PID=$$
 APP_NAME="get-elixir"
 APP_VERSION="0.0.4-dev"
 APP_COMMAND="./get-elixir.sh"
-APP_REPO_USER="eksperimental"
-APP_URL="https://github.com/${APP_REPO_USER}/${APP_NAME}"
-#APP_GIT_URL="${APP_URL}.git"
-#APP_SCRIPT_URL="${APP_URL}/raw/master/get-elixir.sh"
-#APP_SCRIPT=$(basename "${APP_SCRIPT_URL}")
-APP_RELEASES_URL="https://github.com/${APP_REPO_USER}/${APP_NAME}/releases"
+APP_URL="https://github.com/eksperimental/get-elixir"
+APP_RELEASES_URL="https://github.com/eksperimental/get-elixir/releases"
 APP_RELEASES_JSON_URL="https://api.github.com/repos/elixir-lang/elixir/releases"
 ELIXIR_CSV_URL="https://github.com/elixir-lang/elixir-lang.github.com/raw/master/elixir.csv"
 ELIXIR_RELEASES_URL="https://github.com/elixir-lang/elixir/releases"
-#ELIXIR_RELEASE_TAG_URL=""
-#ELIXIR_TREE_URL=""
 SELF=""
 SCRIPT_PATH=""
-
 
 DEFAULT_RELEASE="latest"
 
@@ -33,6 +26,8 @@ do_instantiate_vars() {
   SILENT_DOWNLOAD=1
   DOWNLOAD_COMMAND_OPTIONS="-fL"
   ASSUME_YES=1
+  VERBOSE_UNPACK=1
+  CONFIRM_OVERWRITE=0
 }
 
 # FUNCTIONS
@@ -77,6 +72,9 @@ help() {
         --list-releases        Lists all Elixir releases (final and pre-releases)
         --list-final-releases  Lists final Elixir releases
         --silent-download      Silent download (Hide status)
+        --verbose-unpack       Be verbose when unpacking files
+        --confirm-overwrite    Confirm before overwritting any file.
+                               This is superseeded by --assume-yes
     -y, --assume-yes           Assume 'Yes' to all confirmations, and do not prompt
     -v, --version              Prints script version
 
@@ -171,6 +169,56 @@ set_download_command_options() {
   return 0
 }
 
+get_unpack_verbose_option() {
+  case "$1" in 
+    unzip)
+      if [ ${VERBOSE_UNPACK} -eq 0 ]; then
+        echo ""
+      else
+        echo "-q"
+      fi
+      ;;
+
+    tar)
+      if [ ${VERBOSE_UNPACK} -eq 0 ]; then
+        echo "-v"
+      else
+        echo ""
+      fi
+      ;;
+  esac
+  return 0
+}
+
+get_unpack_overwrite_option() {
+  case "$1" in 
+    unzip)
+      if [ ${CONFIRM_OVERWRITE} -eq 0 ]; then
+        echo "-o"
+      else
+        echo ""
+      fi
+      ;;
+
+    tar)
+      if [ ${CONFIRM_OVERWRITE} -eq 0 ]; then
+        echo "-f"
+      else
+        echo ""
+      fi
+      ;;
+
+    tar)
+      if [ ${CONFIRM_OVERWRITE} -eq 0 ]; then
+        echo "-i"
+      else
+        echo ""
+      fi
+      ;;
+  esac
+  return 0
+}
+
 download_source() {
   local release="$1"
   local url="https://github.com/elixir-lang/elixir/archive/v${release}.tar.gz"
@@ -204,21 +252,29 @@ download_binaries() {
 unpack_source() {
   local release="$1"
   local dir="$2"
-  tar -xzf "v${release}.tar.gz" && 
-  mkdir -p "${dir}" && 
-  cp -rf elixir-"${release}"/* "${dir}" && 
-  rm -rf elixir-"${release}"/ || (
+  local verbose="$(get_unpack_verbose_option tar)"
+  local overwrite="$(get_unpack_overwrite_option cp)"
+  mkdir -p "${dir}" &&
+  #local tmp_dir="${dir}/.${APP_NAME}-$(epoch_time)"
+  local tmp_dir="/tmp/${APP_NAME}-$(epoch_time)"
+  mkdir -p "${tmp_dir}" &&
+  tar -C "${tmp_dir}" -xzf ${verbose} "v${release}.tar.gz" && 
+  echo "cp -r ${overwrite_cp} ${tmp_dir}/elixir-${release}/*" "${dir}" &&
+  cp -r ${overwrite_cp} "${tmp_dir}/elixir-${release}"/* "${dir}" || (
     echo "* [ERROR] \"v${release}.tar.gz\" could not be unpacked to ${dir}" >&2
-    echo "          Check the file permissions." >&2
+    echo "          Check the {release permissions." >&2
     exit_script
   )
+  rm -rf "${tmp_dir}"
 }
 
 unpack_binaries() {
   local dir="$1"
   local file="Precompiled-v${release}.zip"
+  local verbose="$(get_unpack_verbose_option unzip)"
+  local overwrite="$(get_unpack_overwrite_option unzip)"
   mkdir -p "${dir}" && 
-  unzip -o -q -d "${dir}" "${file}" || (
+  unzip ${verbose} ${overwrite} -d "${dir}" "${file}" || (
     echo "* [ERROR] \"${file}\" could not be unpacked to ${dir}" >&2
     echo "          Check the file permissions." >&2
     exit_script
@@ -278,17 +334,12 @@ readlink_f () {
   fi
 }
 
+epoch_time() {
+  #http://stackoverflow.com/questions/2445198/get-seconds-since-epoch-in-any-posix-compliant-shell
+  PATH=`getconf PATH` awk 'BEGIN{srand();print srand()}'
+}
+
 do_parse_options() {
-  # ./get-elixir.sh 
-  #   (--unpack | -u)
-  #   (--source | -s | --binaries | -b)
-  #   (--release | -r) <release_number>
-  #   (--dir| -d) <dir>
-  #   ...
-  #   (--help | -h)
-  #   (--version | -v)
-  #   (--update-script)
-  
   POS=1
   while [ $POS -le $# ]; do
     SKIP=1
@@ -319,7 +370,12 @@ do_parse_options() {
       -y|--assume-yes)
           ASSUME_YES=0
           ;;
-
+      --vebose-unpack)
+          VERBOSE_UNPACK=0
+          ;;
+      --confirm-overwrite)
+          CONFIRM_OVERWRITE=0
+          ;;
       --update-script)
           COMMAND="update-script"
           ;;
@@ -363,6 +419,12 @@ do_parse_options() {
   done
 }
 
+superseed_options() {
+  if [ "${ASSUME_YES}" = 0 ]; then
+    CONFIRM_OVERWRITE=1
+  fi
+}
+
 do_main() {
   # Show short_help if no options provided
   if [ $# = 0 ]; then
@@ -372,8 +434,9 @@ do_main() {
 
   do_instantiate_vars
   do_parse_options "$@"
+  superseed_options
   set_download_command_options
-
+  
   # check for options that should return inmediately
   case "${COMMAND}" in
     help)
@@ -446,8 +509,6 @@ do_main() {
     ;;
 
     "unpack")
-      # TODO: CONFIRM files are gonna be replace if DIR is not empty
-      # TODO: create an option to skip this confirmation
       case "${PACKAGE_TYPE}" in
         "binaries")
           download_binaries "${RELEASE}"

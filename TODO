@@ -4,9 +4,9 @@ TODO
 [x] "--list-releases"  (reads from the github JSON file)
 [x] "--list-final-releases"  (reads from the CSV file)
 [x] "--silent-download"  add option to force curl to be silent while downloading
-[ ] "--verbose" Add option to be verbose when unpacking files 
+[x] "--verbose" Add option to be verbose when unpacking files 
 [x] "-y, --assume-yes" Avoid Confirmations and assume always yes.
-[ ] Confirm files are gonna be replaced if DIR is not empty when unpacking
+[x] Confirm files are gonna be replaced if DIR is not empty when unpacking
 [ ] "--dir-keep" Where to keep downloaded files
 [ ] Create Makefile. Targets:
     [ ] install / uninstall
