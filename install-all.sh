@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 readlink_f () {
   cd "$(dirname "$1")" > /dev/null

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 trap "exit 1" TERM
 export TOP_PID=$$
@@ -134,7 +134,7 @@ get_latest_release() {
 
 get_latest_script_version() {
   #release=$(curl -s -fL "${APP_RELEASES_URL}" | grep browser_download_url | head -n 1 | cut -d '"' -f 4)
-  local release=$(curl -sfI "${APP_RELEASES_URL}/latest" |  grep "Location: " | tr '\r' '\0' | tr '\n' '\0' | rev | cut -d"/" -f1 | rev)
+  local release=$(curl -sfI "${APP_RELEASES_URL}/latest" |  grep "Location: " | tr '\r' '\0' | tr '\n' '\0' | rev | cut -d'/' -f1 | rev)
   if [ "${release}" = "" ]; then
     echo "* [ERROR] Latest ${APP_NAME} release number couldn't be retrieved from ${APP_RELEASES_URL}" >&2
     exit_script
@@ -227,10 +227,9 @@ update_script() {
 
 confirm() {
   local reply=""
-  #read -p "${1} [Y/N]: " reply
-  echo -n "${1} [Y/N]: " 
+  printf '%s [Y/N]: ' "${1}"
   read reply
-  if printf "%s\n" "${reply}" | grep -Eq "^[yY].*"; then
+  if printf '%s\n' "${reply}" | grep -Eq '^[yY].*'; then
     return 0
   else
     return 1
@@ -239,9 +238,9 @@ confirm() {
 
 readlink_f () {
   cd "$(dirname "$1")" > /dev/null
-  filename="$(basename "$1")"
-  if [ -h "$filename" ]; then
-    readlink_f "$(readlink "$filename")"
+  local filename="$(basename "$1")"
+  if [ -h "${filename}" ]; then
+    readlink_f "$(readlink "${filename}")"
   else
     echo "$(pwd -P)/${filename}"
   fi
@@ -262,7 +261,7 @@ do_parse_options() {
   while [ $POS -le $# ]; do
     SKIP=1
     eval "CURRENT=\${$POS}"
-    case "$CURRENT" in
+    case "${CURRENT}" in
       -h|--help)
           COMMAND="help"
           break;
@@ -295,7 +294,7 @@ do_parse_options() {
       -r|--release)
           POS=$((POS + 1))
           eval "RELEASE=\${$POS}"
-          RELEASE=$(sanitize_release "${RELEASE}")
+          RELEASE="$(sanitize_release "${RELEASE}")"
           SKIP=2
           ;;
       -d|--dir)
@@ -303,7 +302,7 @@ do_parse_options() {
           eval "DIR=\${$POS}"
           # expand dir
           eval "DIR=${DIR}"
-          DIR=$(sanitize_dir "${DIR}")
+          DIR="$(sanitize_dir "${DIR}")"
           SKIP=2
           ;;
       *)
@@ -327,7 +326,7 @@ do_default_options() {
   if [ "${DIR}" = "" ] ; then
     # expand dir
     eval "DIR=${DEFAULT_DIR}"
-    DIR=$(sanitize_dir "${DIR}")
+    DIR="$(sanitize_dir "${DIR}")"
   fi
 }
 
@@ -339,7 +338,7 @@ do_main() {
     exit_script
   fi
 
-  do_parse_options "${@}"
+  do_parse_options "$@"
   do_default_options
 
   # check for options that should return inmediately
