@@ -11,15 +11,15 @@ APP_RELEASES_URL="https://github.com/eksperimental/get-elixir/releases"
 APP_RELEASES_JSON_URL="https://api.github.com/repos/elixir-lang/elixir/releases"
 ELIXIR_CSV_URL="https://github.com/elixir-lang/elixir-lang.github.com/raw/master/elixir.csv"
 ELIXIR_RELEASES_URL="https://github.com/elixir-lang/elixir/releases"
-SELF=""
-SCRIPT_PATH=""
+SELF="" # set at the bottom of the script
+SCRIPT_PATH="" # set at the bottom of the script
 
 DEFAULT_RELEASE="latest"
 
 #ARGS VARIABLES + DEFAULT 
 do_instantiate_vars() {
+  PACKAGE_TYPE=""  # <= required to be set via command options
   COMMAND="download"
-  PACKAGE_TYPE=""
   RELEASE="${DEFAULT_RELEASE}"
   DIR="elixir" #<== do no use trailing slashes
   #eval "DIR=~/.elixir"  #<== needed to expand, in case we use "~" in default dir
@@ -101,10 +101,44 @@ help() {
      ${ELIXIR_RELEASES_URL}"
 }
 
+#posix functions
+readlink_f () {
+  cd "$(dirname "$1")" > /dev/null
+  local filename="$(basename "$1")"
+  if [ -h "${filename}" ]; then
+    readlink_f "$(readlink "${filename}")"
+  else
+    echo "$(pwd -P)/${filename}"
+  fi
+}
+
+epoch_time() {
+  #http://stackoverflow.com/questions/2445198/get-seconds-since-epoch-in-any-posix-compliant-shell
+  PATH=`getconf PATH` awk 'BEGIN{srand();print srand()}'
+}
+
 exit_script() {
   # http://stackoverflow.com/questions/9893667/is-there-a-way-to-write-a-bash-function-which-aborts-the-whole-execution-no-mat
   kill -s TERM $TOP_PID
 }
+
+confirm() {
+  if [ "${ASSUME_YES}" = 0 ]; then
+    return 0
+  else
+    local reply=""
+    printf '%s [Y/N]: ' "${1}"
+    read reply
+    if printf '%s\n' "${reply}" | grep -Eq '^[yY].*'; then
+      return 0
+    else
+      return 1
+    fi
+  fi
+}
+
+
+# get-elixir functions 
 
 sanitize_release() {
   # remove v from release,
@@ -307,36 +341,6 @@ update_script() {
     echo "* [OK] ${APP_COMMAND} is already the newest version."
     return 0
   fi
-}
-
-confirm() {
-  if [ "${ASSUME_YES}" = 0 ]; then
-    return 0
-  else
-    local reply=""
-    printf '%s [Y/N]: ' "${1}"
-    read reply
-    if printf '%s\n' "${reply}" | grep -Eq '^[yY].*'; then
-      return 0
-    else
-      return 1
-    fi
-  fi
-}
-
-readlink_f () {
-  cd "$(dirname "$1")" > /dev/null
-  local filename="$(basename "$1")"
-  if [ -h "${filename}" ]; then
-    readlink_f "$(readlink "${filename}")"
-  else
-    echo "$(pwd -P)/${filename}"
-  fi
-}
-
-epoch_time() {
-  #http://stackoverflow.com/questions/2445198/get-seconds-since-epoch-in-any-posix-compliant-shell
-  PATH=`getconf PATH` awk 'BEGIN{srand();print srand()}'
 }
 
 do_parse_options() {
