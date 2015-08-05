@@ -1,20 +1,23 @@
 TODO
 =======
 
-[x] "--list-releases"  (reads from the github JSON file)
-[x] "--list-final-releases"  (reads from the CSV file)
-[x] "--silent-download"  add option to force curl to be silent while downloading
-[x] "--verbose" Add option to be verbose when unpacking files 
-[x] "-y, --assume-yes" Avoid Confirmations and assume always yes.
-[x] Confirm files are gonna be replaced if DIR is not empty when unpacking
-[ ] "--dir-keep" Where to keep downloaded files
-[ ] Create Makefile. Targets:
-    [ ] install / uninstall
-    [ ] test
-[ ] Unit test everything
-    [ ] Test it in every possible POSIX shell: ash, bash, csh, dash, fish, ksh93, mksh, pdksh, tcsh, zsh
-        Alternative shells: yash, sash, fizsh, 
-        $ sudo apt-get install yash sash fizsh ash bash csh dash fish ksh mksh pdksh tcsh zsh
-        Reference: http://luv.asn.au/overheads/shells-talk.html
-    [ ] Use CI on Travis
-        [ ] Test on OS X
+- [x] "--list-releases"  (reads from the github JSON file)
+- [x] "--list-final-releases"  (reads from the CSV file)
+- [x] "--silent-download"  add option to force curl to be silent while downloading
+- [x] "--verbose" Add option to be verbose when unpacking files 
+- [x] "-y, --assume-yes" Avoid Confirmations and assume always yes.
+- [x] Confirm files are gonna be replaced if DIR is not empty when unpacking
+- [x] "--dir-keep" Where to keep downloaded files
+- [ ] --download-script
+- [ ] Accept multiple single-char options together (ie. -duy = -d -u -y)
+- [ ] Return error on unrecognized option passed
+- [ ] Create Makefile. Targets:
+    - [ ] install / uninstall
+    - [ ] test
+- [ ] Unit test everything
+    - [ ] Test it in every possible POSIX shell: ash, bash, csh, dash, fish, ksh93, mksh, pdksh, tcsh, zsh
+          Alternative shells: yash, sash, fizsh, 
+          $ sudo apt-get install yash sash fizsh ash bash csh dash fish ksh mksh pdksh tcsh zsh
+          Reference: http://luv.asn.au/overheads/shells-talk.html
+    - [ ] Use CI on Travis
+        - [ ] Test on OS X
