@@ -12,10 +12,9 @@ APP_RELEASES_URL="https://github.com/eksperimental/get-elixir/releases"
 APP_RELEASES_JSON_URL="https://api.github.com/repos/elixir-lang/elixir/releases"
 ELIXIR_CSV_URL="https://github.com/elixir-lang/elixir-lang.github.com/raw/master/elixir.csv"
 SELF="" # set at the bottom of the script
-SCRIPT_PATH="" # set at the bottom of the script
+#SCRIPT_PATH="" # set at the bottom of the script
 
 DEFAULT_RELEASE="latest"
-
 #ARGS VARIABLES + DEFAULT 
 do_instantiate_vars() {
   PACKAGE_TYPE=""  # <= required to be set via command options
@@ -27,9 +26,14 @@ do_instantiate_vars() {
   DOWNLOAD_COMMAND_OPTIONS="-fL"
   ASSUME_YES=1
   VERBOSE_UNPACK=1
-  CONFIRM_OVERWRITE=0
+  ASK_OVERWRITE=1
   KEEP_DIR="."
 }
+
+# INTERNAL USE
+USED_EXISTING_BINARIES=1
+USED_EXISTING_SOURCE=1
+USED_EXISTING_SCRIPT=1
 
 # FUNCTIONS
 
@@ -71,14 +75,18 @@ help() {
     -h, --help                 Prints help menu
     -v, --version              Prints script version information
         --update-script        Replace this script by downloading the latest release
+        --download-script      Download the latest release of this script to the
+                               specified location (use --keep-dir)
         --list-releases        Lists all Elixir releases (final and pre-releases)
         --list-final-releases  Lists final Elixir releases
         --silent-download      Silent download (Hide status)
         --verbose-unpack       Be verbose when unpacking files
-        --confirm-overwrite    Confirm before overwritting any file.
-                               This is superseeded by --assume-yes
     -k, --keep-dir             Directory where you want to keep downloaded files
     -y, --assume-yes           Assume 'Yes' to all confirmations, and do not prompt
+        --ask-overwrite        Confirmation needed before overwritting any file.
+                               This is superseeded by --assume-yes.
+                               It is not recommended to use this option, unless you
+                               have a specific reason to do it.
 
   Usage Examples:
 
@@ -126,9 +134,7 @@ exit_script() {
 }
 
 confirm() {
-  if [ "${ASSUME_YES}" = 0 ]; then
-    return 0
-  else
+  if [ "${ASSUME_YES}" -eq 1 ] || ([ "${ASSUME_YES}" -eq 0 ] && [ "${ASK_OVERWRITE}" -eq 0 ]); then
     local reply=""
     printf '%s [Y/N]: ' "$*"
     read reply
@@ -137,6 +143,8 @@ confirm() {
     else
       return 1
     fi
+  else
+    return 0
   fi
 }
 
@@ -145,6 +153,12 @@ check_permissions() {
     download|unpack)
       check_dir_write_permisions "${DIR}"
       check_dir_write_permisions "${KEEP_DIR}"
+    ;;
+    download-script)
+      check_dir_write_permisions "${KEEP_DIR}"  # <-- It will create a dir if it doesn't exit
+      if [ -f "${KEEP_DIR}/get-elixir.sh" ]; then
+        check_file_write_permisions "${KEEP_DIR}/get-elixir.sh"
+      fi
     ;;
     update-script)
       check_file_write_permisions "${SELF}"
@@ -249,17 +263,25 @@ get_unpack_verbose_option() {
   case "$1" in 
     unzip)
       if [ ${VERBOSE_UNPACK} -eq 0 ]; then
-        echo ""
+        printf ''
       else
-        printf '-q'
+        printf '%s' '-q'
       fi
       ;;
 
     tar)
       if [ ${VERBOSE_UNPACK} -eq 0 ]; then
-        printf '-v'
+        printf '%s' '-v'
       else
-        echo ""
+        printf ''
+      fi
+      ;;
+
+    cp)
+      if [ ${VERBOSE_UNPACK} -eq 0 ]; then
+        printf '%s' '-v'
+      else
+        printf ''
       fi
       ;;
   esac
@@ -269,26 +291,26 @@ get_unpack_verbose_option() {
 get_unpack_overwrite_option() {
   case "$1" in 
     unzip)
-      if [ ${CONFIRM_OVERWRITE} -eq 0 ]; then
-        printf '-0'
+      if [ ${ASK_OVERWRITE} -eq 0 ]; then
+        printf ''
+      else
+        printf '%s' '-o'
+      fi
+      ;;
+
+    tar)
+      if [ ${ASK_OVERWRITE} -eq 0 ]; then
+        printf '%s' '-k'
       else
         printf ''
       fi
       ;;
 
-    tar)
-      if [ ${CONFIRM_OVERWRITE} -eq 0 ]; then
-        printf '-f'
+    cp)
+      if [ ${ASK_OVERWRITE} -eq 0 ]; then
+        printf '%s' '-i'
       else
-        printf ''
-      fi
-      ;;
-
-    tar)
-      if [ ${CONFIRM_OVERWRITE} -eq 0 ]; then
-        printf '-i'
-      else
-        printf ''
+        printf '%s' '-f'
       fi
       ;;
   esac
@@ -307,6 +329,7 @@ if [ -f "${KEEP_DIR}/${file_name}" ]; then
 
   if [ $? -ne 0 ]; then
     echo "* Using local file."
+    USED_EXISTING_SOURCE=0
     return 0
   fi
 fi
@@ -335,6 +358,7 @@ if [ -f "${KEEP_DIR}/${file_name}" ]; then
 
   if [ $? -ne 0 ]; then
     echo "* Using local file."
+    USED_EXISTING_BINARIES=0
     return 0
   fi
 fi
@@ -356,13 +380,15 @@ unpack_source() {
   local release="$1"
   local dir="$2"
   local file_name="v${release}.tar.gz"
-  local verbose="$(get_unpack_verbose_option tar)"
-  local overwrite="$(get_unpack_overwrite_option cp)"
-  mkdir -p "${dir}" &&
-  #local tmp_dir="${dir}/.${APP_NAME}-$(epoch_time)"
+  local verbose_tar="$(get_unpack_verbose_option tar)"
+  local overwrite_tar="$(get_unpack_overwrite_option tar)"
+  local overwrite_cp="$(get_unpack_overwrite_option cp)"
   local tmp_dir="/tmp/${APP_NAME}-$(epoch_time)"
+
+  mkdir -p "${dir}" &&
   mkdir -p "${tmp_dir}" &&
-  tar -C "${tmp_dir}" -xzf ${verbose} "${KEEP_DIR}/${file_name}" && 
+  #echo tar -C "${tmp_dir}" ${verbose_tar} ${overwrite_tar} -xz -f "${KEEP_DIR}/${file_name}" && 
+  tar -C "${tmp_dir}" ${verbose_tar} ${overwrite_tar} -xz -f "${KEEP_DIR}/${file_name}" && 
   #echo "cp -r ${overwrite_cp} ${tmp_dir}/elixir-${release}/*" "${dir}" &&
   cp -r ${overwrite_cp} "${tmp_dir}/elixir-${release}"/* "${dir}"
 
@@ -376,18 +402,55 @@ unpack_source() {
 }
 
 unpack_binaries() {
-  local dir="$1"
+  local release="$1"
+  local dir="$2"
   local file="Precompiled-v${release}.zip"
-  local verbose="$(get_unpack_verbose_option unzip)"
-  local overwrite="$(get_unpack_overwrite_option unzip)"
+  local verbose_unzip="$(get_unpack_verbose_option unzip)"
+  local overwrite_unzip="$(get_unpack_overwrite_option unzip)"
   mkdir -p "${dir}" && 
-  unzip ${verbose} ${overwrite} -d "${dir}" "${file}"
+  #echo unzip ${verbose_unzip} ${overwrite_unzip} -d "${dir}" "${file}" &&
+  unzip ${verbose_unzip} ${overwrite_unzip} -d "${dir}" "${file}"
   
   if [ $? -ne 0 ]; then
     echo "* [ERROR] \"${file}\" could not be unpacked to ${dir}" >&2
     echo "          Check the file permissions." >&2
     exit_script
   fi
+}
+
+do_download_script() {
+  local remote_script_url="$1"
+  local local_dest="$2"
+
+  curl ${DOWNLOAD_COMMAND_OPTIONS} -o "${local_dest}" "${remote_script_url}"
+  if [ $? -ne 0 ] || [ ! -f "${local_dest}" ]; then
+    echo "* [ERROR] ${APP_NAME} could not be downloaded from" >&2
+    echo "          ${remote_script_url}" >&2
+    exit_script
+  fi
+  return 0
+}
+
+download_script() {
+  echo "* Retrieving latest ${APP_NAME} release number..."
+  local latest_script_version=$(get_latest_script_version)
+  local file_name="get-elixir.sh"
+  local remote_script_url="${APP_URL}/raw/v${latest_script_version}/${file_name}"
+
+if [ -f "${KEEP_DIR}/${file_name}" ]; then
+  confirm "* You are about to replace '${KEEP_DIR}/${file_name}'.
+  Do you confirm?"
+
+  if [ $? -ne 0 ]; then
+    echo "* Using local file."
+    USED_EXISTING_SCRIPT=0
+    return 0
+  fi
+fi
+
+  echo "* Downloading ${remote_script_url}"
+  do_download_script "${remote_script_url}" "${KEEP_DIR}/${file_name}"
+  return 0
 }
 
 update_script() {
@@ -401,16 +464,9 @@ if [ "${latest_script_version}" != "${APP_VERSION}" ]; then
   Do you confirm?"
 
   if [ $? -eq 0 ]; then
-    curl ${DOWNLOAD_COMMAND_OPTIONS} -o "${SELF}" "${remote_script_url}"
-    if [ $? -eq 0 ]; then
-      chmod +x "${SELF}"
-      echo "* [OK] ${APP_NAME} succesfully updated."
-      return 0
-    else
-      echo "* [ERROR] ${APP_NAME} could not be downloaded from" >&2
-      echo "          ${remote_script_url}" >&2
-      exit_script
-    fi
+    do_download_script "${remote_script_url}" "${SELF}"
+    chmod +x "${local_dest}"
+    echo "* [OK] ${APP_NAME} succesfully updated."
   else
     echo "* Updating script has been cancelled."
     return 1
@@ -422,7 +478,6 @@ fi
 }
 
 do_parse_options() {
-  echo "$@"
   local POS=1
   local SKIP
   while [ $POS -le $# ]; do
@@ -454,11 +509,14 @@ do_parse_options() {
       -y|--assume-yes)
           ASSUME_YES=0
           ;;
-      --vebose-unpack)
+      --verbose-unpack)
           VERBOSE_UNPACK=0
           ;;
-      --confirm-overwrite)
-          CONFIRM_OVERWRITE=0
+      --ask-overwrite)
+          ASK_OVERWRITE=0
+          ;;
+      --download-script)
+          COMMAND="download-script"
           ;;
       --update-script)
           COMMAND="update-script"
@@ -476,7 +534,7 @@ do_parse_options() {
       -b|--binaries)
           if [ "${PACKAGE_TYPE}" = "" ]; then
             PACKAGE_TYPE="binaries"
-          elif [ "${PACKAGE_TYPE}" = "binaries" ]; then
+          elif [ "${PACKAGE_TYPE}" = "source" ]; then
             PACKAGE_TYPE="binaries_source"
           fi
           ;;
@@ -501,7 +559,8 @@ do_parse_options() {
           ;;
       *)
           # TODO: break on unrecognized option
-          exit "Unrecognized option"
+          eval "local option=\${$POS}"
+          exit_script "* [ERROR] Unrecognized option ${option}"
           break
           ;;
     esac
@@ -511,8 +570,36 @@ do_parse_options() {
 
 superseed_options() {
   if [ "${ASSUME_YES}" -eq 0 ]; then
-    CONFIRM_OVERWRITE=1
+    ASK_OVERWRITE=1
   fi
+}
+
+message_downloaded() {
+  case "$1" in
+    source)
+      if [ ${USED_EXISTING_SOURCE} -eq 0 ]; then
+        echo "Existing copy"
+      else
+        echo "Downloaded"
+      fi
+      ;;
+
+    binaries)
+      if [ ${USED_EXISTING_BINARIES} -eq 0 ]; then
+        echo "Existing copy"
+      else
+        echo "Downloaded"
+      fi
+      ;;
+
+    script)
+      if [ ${USED_EXISTING_SCRIPT} -eq 0 ]; then
+        echo "Existing copy"
+      else
+        echo "Downloaded"
+      fi
+      ;;
+  esac
 }
 
 do_main() {
@@ -537,7 +624,15 @@ do_main() {
       echo "${APP_NAME} – version ${APP_VERSION}"
       return 0
     ;;
+    download-script)
+      check_permissions "${COMMAND}"
+      download_script
+      local downloaded_script=$(message_downloaded "script")
+      echo "* [OK] ${downloaded_script}: ${KEEP_DIR}/get-elixir.sh"
+      return 0
+    ;;
     update-script)
+      check_permissions "${COMMAND}"
       update_script
       return 0
     ;;
@@ -552,16 +647,13 @@ do_main() {
   esac
 
   # Check for needed commands
-  if [ "${COMMAND}" = "" ]; then
-    echo "* [ERROR] Unrecognized <command> \"${COMMAND}\". Try 'unpack' or 'download'." >&2
-    exit_script
-  elif [ "${PACKAGE_TYPE}" = "" ]; then
-    echo "* [ERROR] Unrecognized <package_type> \"${PACKAGE_TYPE}\". Try 'binaries' or 'source'." >&2
+  if [ "${PACKAGE_TYPE}" = "" ]; then
+    echo "* [ERROR] Unrecognized package type. Try '--binaries' or '--source'." >&2
     exit_script
   fi
 
   # we check permissions before doing any http request
-  check_permissions
+  check_permissions "${COMMAND}"
   
   # Get latest release if needed
   if [ "${RELEASE}" = "latest" ]; then
@@ -574,30 +666,36 @@ do_main() {
   ELIXIR_TREE_URL="https://github.com/elixir-lang/elixir/tree/v${RELEASE}"
 
   # Do our logic
+  local downloaded_binaries
+  local downloaded_source
   case "${COMMAND}" in
     "download")
       case "${PACKAGE_TYPE}" in
         "binaries")
           download_binaries "${RELEASE}"
+          downloaded_binaries=$(message_downloaded "binaries")
           echo "* [OK] Elixir v${RELEASE} [precompiled binaries]"
           echo "       ${ELIXIR_TREE_URL}"
-          echo "       Downloaded: ${KEEP_DIR}/Precompiled-v${RELEASE}.zip"
+          echo "       ${downloaded_binaries}: ${KEEP_DIR}/Precompiled-v${RELEASE}.zip"
         ;;
 
         "source")
           download_source "${RELEASE}"
+          downloaded_source=$(message_downloaded "source")
           echo "* [OK] Elixir v${RELEASE} [source code]"
           echo "       ${ELIXIR_TREE_URL}"
-          echo "       Downloaded: ${KEEP_DIR}/v${RELEASE}.tar.gz"
+          echo "       ${downloaded_source}: ${KEEP_DIR}/v${RELEASE}.tar.gz"
         ;;
 
         "binaries_source")
           download_binaries "${RELEASE}"
           download_source "${RELEASE}"
+          downloaded_binaries=$(message_downloaded "binaries")
+          downloaded_source=$(message_downloaded "source")
           echo "* [OK] Elixir v${RELEASE} [precompiled binaries & source code]"
           echo "       ${ELIXIR_TREE_URL}"
-          echo "       Downloaded: ${KEEP_DIR}/Precompiled-v${RELEASE}.zip"
-          echo "       Downloaded: ${KEEP_DIR}/v${RELEASE}.tar.gz"
+          echo "       ${downloaded_binaries}: ${KEEP_DIR}/Precompiled-v${RELEASE}.zip"
+          echo "       ${downloaded_source}: ${KEEP_DIR}/v${RELEASE}.tar.gz"
         ;;
       esac
     ;;
@@ -606,30 +704,35 @@ do_main() {
       case "${PACKAGE_TYPE}" in
         "binaries")
           download_binaries "${RELEASE}"
-          unpack_binaries "${DIR}"
+          unpack_binaries "${RELEASE}" "${DIR}"
+          downloaded_binaries=$(message_downloaded "binaries")
           echo "* [OK] Elixir v${RELEASE} [precompiled binaries]"
           echo "       ${ELIXIR_TREE_URL}"
-          echo "       Downloaded: ${KEEP_DIR}/Precompiled-v${RELEASE}.zip"
+          echo "       ${downloaded_binaries}: ${KEEP_DIR}/Precompiled-v${RELEASE}.zip"
           echo "       Unpacked: ${DIR}/"
         ;;
 
         "source")
           download_source "${RELEASE}"
           unpack_source "${RELEASE}" "${DIR}"
+          downloaded_source=$(message_downloaded "source")
           echo "* [OK] Elixir v${RELEASE} [Source]"
           echo "       ${ELIXIR_TREE_URL}"
-          echo "       Downloaded: ${KEEP_DIR}/v${RELEASE}.tar.gz"
+          echo "       ${downloaded_source}: ${KEEP_DIR}/v${RELEASE}.tar.gz"
           echo "       Unpacked: ${DIR}/"
         ;;
 
         "binaries_source")
           download_binaries "${RELEASE}"
-          unpack_binaries "${DIR}"
+          unpack_binaries "${RELEASE}" "${DIR}" 
           download_source "${RELEASE}"
           unpack_source "${RELEASE}" "${DIR}"
+          downloaded_binaries=$(message_downloaded "binaries")
+          downloaded_source=$(message_downloaded "source")
           echo "* [OK] Elixir v${RELEASE} [precompiled binaries & source code]"
           echo "       ${ELIXIR_TREE_URL}"
-          echo "       Downloaded: ${KEEP_DIR}/v${RELEASE}.tar.gz"
+          echo "       ${downloaded_binaries}: ${KEEP_DIR}/Precompiled-v${RELEASE}.zip"
+          echo "       ${downloaded_source}: ${KEEP_DIR}/v${RELEASE}.tar.gz"
           echo "       Unpacked: ${DIR}/"
         ;;
       esac
@@ -638,6 +741,6 @@ do_main() {
 }
 
 SELF=$(readlink_f "$0")
-SCRIPT_PATH=$(dirname "$SELF")
+#SCRIPT_PATH=$(dirname "$SELF")
 do_main "$@"
 exit 0

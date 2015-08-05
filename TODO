@@ -8,9 +8,9 @@ TODO
 - [x] "-y, --assume-yes" Avoid Confirmations and assume always yes.
 - [x] Confirm files are gonna be replaced if DIR is not empty when unpacking
 - [x] "--dir-keep" Where to keep downloaded files
-- [ ] --download-script
+- [x] --download-script
 - [ ] Accept multiple single-char options together (ie. -duy = -d -u -y)
-- [ ] Return error on unrecognized option passed
+- [x] Return error on unrecognized option passed
 - [ ] Create Makefile. Targets:
     - [ ] install / uninstall
     - [ ] test
