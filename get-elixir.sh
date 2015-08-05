@@ -10,9 +10,8 @@ APP_URL="https://github.com/eksperimental/get-elixir"
 APP_RELEASES_URL="https://github.com/eksperimental/get-elixir/releases"
 APP_RELEASES_JSON_URL="https://api.github.com/repos/elixir-lang/elixir/releases"
 ELIXIR_CSV_URL="https://github.com/elixir-lang/elixir-lang.github.com/raw/master/elixir.csv"
-ELIXIR_RELEASES_URL="https://github.com/elixir-lang/elixir/releases"
 SELF="" # set at the bottom of the script
-SCRIPT_PATH="" # set at the bottom of the script
+#SCRIPT_PATH="" # set at the bottom of the script
 
 DEFAULT_RELEASE="latest"
 
@@ -76,7 +75,7 @@ help() {
         --confirm-overwrite    Confirm before overwritting any file.
                                This is superseeded by --assume-yes
     -y, --assume-yes           Assume 'Yes' to all confirmations, and do not prompt
-    -v, --version              Prints script version
+    -v, --version              Prints script version information
 
   Usage Examples:
 
@@ -114,7 +113,7 @@ readlink_f () {
 
 epoch_time() {
   #http://stackoverflow.com/questions/2445198/get-seconds-since-epoch-in-any-posix-compliant-shell
-  PATH=`getconf PATH` awk 'BEGIN{srand();print srand()}'
+  PATH=$($(getconf PATH) awk 'BEGIN{srand();print srand()}')
 }
 
 exit_script() {
@@ -209,13 +208,13 @@ get_unpack_verbose_option() {
       if [ ${VERBOSE_UNPACK} -eq 0 ]; then
         echo ""
       else
-        echo "-q"
+        printf '-q'
       fi
       ;;
 
     tar)
       if [ ${VERBOSE_UNPACK} -eq 0 ]; then
-        echo "-v"
+        printf '-v'
       else
         echo ""
       fi
@@ -228,7 +227,7 @@ get_unpack_overwrite_option() {
   case "$1" in 
     unzip)
       if [ ${CONFIRM_OVERWRITE} -eq 0 ]; then
-        echo "-o"
+        printf '-0'
       else
         echo ""
       fi
@@ -236,7 +235,7 @@ get_unpack_overwrite_option() {
 
     tar)
       if [ ${CONFIRM_OVERWRITE} -eq 0 ]; then
-        echo "-f"
+        printf '-f'
       else
         echo ""
       fi
@@ -244,7 +243,7 @@ get_unpack_overwrite_option() {
 
     tar)
       if [ ${CONFIRM_OVERWRITE} -eq 0 ]; then
-        echo "-i"
+        printf '-i'
       else
         echo ""
       fi
@@ -545,6 +544,6 @@ do_main() {
 }
 
 SELF=$(readlink_f "$0")
-SCRIPT_PATH=$(dirname "$SELF")
+#SCRIPT_PATH=$(dirname "$SELF")
 do_main "$@"
 exit 0
