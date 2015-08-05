@@ -97,8 +97,8 @@ help() {
       # Get sources and compiled all in one
       ${APP_COMMAND} unpack binaries && ${APP_COMMAND} unpack source 
 
-  ** For a list of available releases, plesase visit:
-     ${ELIXIR_RELEASES_URL}"
+  ** For a list of available releases, run:
+     ${APP_COMMAND} --list-releases"
 }
 
 #posix functions
@@ -261,8 +261,8 @@ download_source() {
   if [ ! -f "v${release}.tar.gz" ]; then
     echo "* [ERROR] Elixir v${RELEASE} could not be downloaded from ${url}" >&2
     if [ "${RELEASE}" != "${DEFAULT_RELEASE}" ]; then
-    echo "          Please make sure release number is a valid one, by checking:" >&2
-    echo "          ${ELIXIR_RELEASES_URL}" >&2
+    echo "          Please make sure the release number is a valid one, by running:" >&2
+    echo "          ${APP_COMMAND} --list-releases" >&2
     fi
     exit_script
   fi
@@ -276,8 +276,8 @@ download_binaries() {
   if [ ! -f "Precompiled-v${release}.zip" ]; then
     echo "* [ERROR] Elixir v${RELEASE} could not be downloaded from ${url}" >&2
     if [ "${RELEASE}" != "${DEFAULT_RELEASE}" ]; then
-    echo "          Please make sure release number is a valid one, by finding it in:" >&2
-    echo "          ${ELIXIR_RELEASES_URL}" >&2
+    echo "          Please make sure the release number is a valid one, by running:" >&2
+    echo "          ${APP_COMMAND} --list-releases" >&2
     fi
     exit_script
   fi
