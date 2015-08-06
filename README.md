@@ -4,7 +4,7 @@ Get any release of the **[Elixir programming language](http://elixir-lang.org)**
 
 ## About
 
-**get-elixir** is a script is POSIX compliant shell script which aims to help people download [Elixir releases](https://github.com/elixir-lang/elixir/releases) under any UNIX like operating system (ie. GNU/Linux, *BSD, OSX)
+**get-elixir** is a script is POSIX shell script which aims to help people download [Elixir releases](https://github.com/elixir-lang/elixir/releases) under any UNIX like operating system (ie. GNU/Linux, *BSD, OSX)
 
 All you have to do is tell the script, whether you want to **download** or download-and-**unpack** the latest (or any other release), and the script will get it for you.
 
@@ -13,6 +13,8 @@ It is your duty, though, to [set the PATH environmental variable](http://elixir-
 If you are interested in only getting Elixir once, you may execute the [one-liner commands](one-liner.md) that can be directly pasted into your command line, without having to download any script.
 
 It can also be of interest to developers who need maintain different of versions of Elixir, without the need to build them, to use in conjuntion with an Elixir version manager like [exevn](https://github.com/mururu/exenv). See the [Examples – Advanced](#examples-advanced) section for more on this.
+
+It is the aim of the project to provide a tool where no high-tecnical knowledge is required.
 
 ## Installation
 
@@ -26,34 +28,45 @@ It will download and set the permissions to execute the script.
 ## Usage
 
 ```sh
-./get-elixir.sh <package_type>... <options>...
+./get-elixir.sh <package_type>... [<options>...]
 
 ./get-elixir.sh (--source | --binaries)
                 [--unpack]
-                [<release_number>]
+                [--release <release_number>]
                 [--dir <dir>]
-
-# other options
-./get-elixir.sh (--update-script | --help | --version)
 ```
 
 ```sh
+Usage: ./get-elixir.sh <package_type>... <options>...
+
 Package Types:
   -b, --binaries       Download precompiled binaries
   -s, --source         Download source code
 
-Options:
- -u, --unpack         Unpacks the package(s) once downloaded
- -r, --release        Elixir release number
-                      'latest' is the default option
-                      Examples: 'latest', '1.0.5', '1.0.0-rc2'
- -d, --dir            Directory where you want to unpack Elixir.
-                      Default value: 'elixir'
+Main Options:
+  -u, --unpack         Unpacks the package(s) once downloaded
+  -r, --release        Elixir release number
+                       'latest' is the default option
+                       Examples: 'latest', '1.0.5', '1.0.0-rc2'
+  -d, --dir            Directory where you want to unpack Elixir.
+                       Default value: '${DIR}'
 
-Other Options:
- -h, --help           Prints help menu
-     --update-script  Replace this script by downloading the latest release
- -v, --version        Prints script version
+Secondary Options:
+  -h, --help                 Prints help menu
+  -v, --version              Prints script version information
+      --update-script        Replace this script by downloading the latest release
+      --download-script      Download the latest release of this script to the
+                             specified location (use --keep-dir)
+      --list-releases        Lists all Elixir releases (final and pre-releases)
+      --list-final-releases  Lists final Elixir releases
+      --silent-download      Silent download (Hide status)
+      --verbose-unpack       Be verbose when unpacking files
+  -k, --keep-dir             Directory where you want to keep downloaded files
+  -y, --assume-yes           Assume 'Yes' to all confirmations, and do not prompt
+      --ask-overwrite        Confirmation needed before overwritting any file.
+                             This is superseeded by --assume-yes.
+                             It is not recommended to use this option, unless you
+                             have a specific reason to do it.
 ```
 
 
@@ -65,17 +78,14 @@ Other Options:
 
 # Download and unpack the souce code for v1.0.5,
 # and unpack it in dir 'elixir-1.0.x'
-./get-elixir.sh --unpack --source --release 1.0.5 --dir elixir-1.0.x/
+./get-elixir.sh --source --unpack --release 1.0.5 --dir elixir-1.0.x/
+
+# Download and unpack the latest in a differt directory
+./get-elixir.sh --source --unpack -d ./elixir-new
 
 # Download and unpack source code and precompiled binaries,
 # for v1.0.0-rc2
-./get-elixir.sh -u -s -b -r 1.0.0-rc2
-
-# Install the latest in a differt directory
-./get-elixir.sh unpack source latest ./elixir-new
-
-# Get sources and compiled all in one
-./get-elixir.sh unpack binaries && ./get-elixir.sh unpack source 
+./get-elixir.sh -s -b -u -r 1.0.0-rc2
 ```
 
 ## Examples – Advanced
@@ -95,13 +105,23 @@ done
 exenv rehash
 ```
 
-## Additional Commands
+## Additional Options
 
-You have other commands available, which are:
-
-* `./get-elixir.sh --update-script` – Updates this script from your command line.
-* `./get-elixir.sh --help`          – Prints the help menu, documentaion the usage of this tool.
-* `./get-elixir.sh --version`       – Prints the version number.
+* --help                 – Prints help menu
+* --version              – Prints script version information
+* --update-script        – Replace this script by downloading the latest release
+* --download-script      – Download the latest release of this script to the
+*                          specified location (use --keep-dir)
+* --list-releases        – Lists all Elixir releases (final and pre-releases)
+* --list-final-releases  – Lists final Elixir releases
+* --silent-download      – Silent download (Hide status)
+* --verbose-unpack       – Be verbose when unpacking files
+* --keep-dir             – Directory where you want to keep downloaded files
+* --assume-yes           – Assume 'Yes' to all confirmations, and do not prompt
+* --ask-overwrite        – Confirmation needed before overwritting any file.
+                           This is superseeded by --assume-yes.
+                           It is not recommended to use this option, unless you
+                           have a specific reason to do it.
 
 ## More information
 

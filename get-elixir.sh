@@ -35,6 +35,8 @@ USED_EXISTING_BINARIES=1
 USED_EXISTING_SOURCE=1
 USED_EXISTING_SCRIPT=1
 
+
+########################################################################
 # FUNCTIONS
 
 short_help() {
@@ -42,7 +44,7 @@ short_help() {
 
   Usage: ./get-elixir.sh (--source | --binaries)
                          [--unpack]
-                         [<release_number>]
+                         [--release <release_number>]
                          [--dir <dir>]
 
   Example:
@@ -57,7 +59,7 @@ help() {
   Get any release of the Elixir programming language,
   without leaving the comfort of your command line.
 
-  Usage: ./get-elixir.sh <package_type>... <options>...
+  Usage: ./get-elixir.sh <package_type>... [<options>...]
 
   Package Types:
     -b, --binaries       Download precompiled binaries
@@ -97,16 +99,20 @@ help() {
       # and unpack it in dir 'elixir-1.0.x'
       ${APP_COMMAND} --source --unpack --release 1.0.5 --dir elixir-1.0.x/
       
+      # Download and unpack the latest in a differt directory
+      ${APP_COMMAND} --source --unpack -d ./elixir-new
+
       # Download and unpack source code and precompiled binaries,
       # for v1.0.0-rc2
       ${APP_COMMAND} -s -b -u -r 1.0.0-rc2
 
-      # Download and unpack the latest in a differt directory
-      ${APP_COMMAND} --source --unpack -d ./elixir-new
 
   ** For a list of available releases, run:
      ${APP_COMMAND} --list-releases"
 }
+
+########################################################################
+# HELPER FUNCTIONS : General
 
 #posix / helper functions
 readlink_f () {
@@ -147,6 +153,9 @@ confirm() {
     return 0
   fi
 }
+
+########################################################################
+# PERMISSION RELATED FUNCTIONS
 
 check_permissions() {
   case "${COMMAND}" in
@@ -189,7 +198,8 @@ check_file_write_permisions() {
   fi
 }
 
-# get-elixir functions 
+########################################################################
+# HELPER FUNCTIONS: get-elixir
 
 sanitize_release() {
   # remove v from release,
@@ -249,6 +259,43 @@ get_latest_script_version() {
     exit_script
   else
     sanitize_release "${release}"
+  fi
+}
+
+get_message_downloaded() {
+  case "$1" in
+    source)
+      if [ ${USED_EXISTING_SOURCE} -eq 0 ]; then
+        echo "Existing copy"
+      else
+        echo "Downloaded"
+      fi
+      ;;
+
+    binaries)
+      if [ ${USED_EXISTING_BINARIES} -eq 0 ]; then
+        echo "Existing copy"
+      else
+        echo "Downloaded"
+      fi
+      ;;
+
+    script)
+      if [ ${USED_EXISTING_SCRIPT} -eq 0 ]; then
+        echo "Existing copy"
+      else
+        echo "Downloaded"
+      fi
+      ;;
+  esac
+}
+
+########################################################################
+# CONFIGURATION FUNCTIONS
+
+superseed_options() {
+  if [ "${ASSUME_YES}" -eq 0 ]; then
+    ASK_OVERWRITE=1
   fi
 }
 
@@ -316,6 +363,9 @@ get_unpack_overwrite_option() {
   esac
   return 0
 }
+
+########################################################################
+# MAIN FUNCTIONS
 
 download_source() {
   local release="$1"
@@ -477,6 +527,9 @@ else
 fi
 }
 
+########################################################################
+# Main functions
+
 do_parse_options() {
   local POS=1
   local SKIP
@@ -568,40 +621,6 @@ do_parse_options() {
   done
 }
 
-superseed_options() {
-  if [ "${ASSUME_YES}" -eq 0 ]; then
-    ASK_OVERWRITE=1
-  fi
-}
-
-message_downloaded() {
-  case "$1" in
-    source)
-      if [ ${USED_EXISTING_SOURCE} -eq 0 ]; then
-        echo "Existing copy"
-      else
-        echo "Downloaded"
-      fi
-      ;;
-
-    binaries)
-      if [ ${USED_EXISTING_BINARIES} -eq 0 ]; then
-        echo "Existing copy"
-      else
-        echo "Downloaded"
-      fi
-      ;;
-
-    script)
-      if [ ${USED_EXISTING_SCRIPT} -eq 0 ]; then
-        echo "Existing copy"
-      else
-        echo "Downloaded"
-      fi
-      ;;
-  esac
-}
-
 do_main() {
   # Show short_help if no options provided
   if [ $# = 0 ]; then
@@ -627,7 +646,7 @@ do_main() {
     download-script)
       check_permissions "${COMMAND}"
       download_script
-      local downloaded_script=$(message_downloaded "script")
+      local downloaded_script=$(get_message_downloaded "script")
       echo "* [OK] ${downloaded_script}: ${KEEP_DIR}/get-elixir.sh"
       return 0
     ;;
@@ -669,29 +688,32 @@ do_main() {
   local downloaded_binaries
   local downloaded_source
   case "${COMMAND}" in
-    "download")
+    download)
       case "${PACKAGE_TYPE}" in
         "binaries")
           download_binaries "${RELEASE}"
-          downloaded_binaries=$(message_downloaded "binaries")
+          
+          downloaded_binaries=$(get_message_downloaded "binaries")
           echo "* [OK] Elixir v${RELEASE} [precompiled binaries]"
           echo "       ${ELIXIR_TREE_URL}"
           echo "       ${downloaded_binaries}: ${KEEP_DIR}/Precompiled-v${RELEASE}.zip"
         ;;
 
-        "source")
+        source)
           download_source "${RELEASE}"
-          downloaded_source=$(message_downloaded "source")
+          
+          downloaded_source=$(get_message_downloaded "source")
           echo "* [OK] Elixir v${RELEASE} [source code]"
           echo "       ${ELIXIR_TREE_URL}"
           echo "       ${downloaded_source}: ${KEEP_DIR}/v${RELEASE}.tar.gz"
         ;;
 
-        "binaries_source")
+        binaries_source)
           download_binaries "${RELEASE}"
           download_source "${RELEASE}"
-          downloaded_binaries=$(message_downloaded "binaries")
-          downloaded_source=$(message_downloaded "source")
+          
+          downloaded_binaries=$(get_message_downloaded "binaries")
+          downloaded_source=$(get_message_downloaded "source")
           echo "* [OK] Elixir v${RELEASE} [precompiled binaries & source code]"
           echo "       ${ELIXIR_TREE_URL}"
           echo "       ${downloaded_binaries}: ${KEEP_DIR}/Precompiled-v${RELEASE}.zip"
@@ -705,7 +727,8 @@ do_main() {
         "binaries")
           download_binaries "${RELEASE}"
           unpack_binaries "${RELEASE}" "${DIR}"
-          downloaded_binaries=$(message_downloaded "binaries")
+          
+          downloaded_binaries=$(get_message_downloaded "binaries")
           echo "* [OK] Elixir v${RELEASE} [precompiled binaries]"
           echo "       ${ELIXIR_TREE_URL}"
           echo "       ${downloaded_binaries}: ${KEEP_DIR}/Precompiled-v${RELEASE}.zip"
@@ -715,7 +738,8 @@ do_main() {
         "source")
           download_source "${RELEASE}"
           unpack_source "${RELEASE}" "${DIR}"
-          downloaded_source=$(message_downloaded "source")
+          
+          downloaded_source=$(get_message_downloaded "source")
           echo "* [OK] Elixir v${RELEASE} [Source]"
           echo "       ${ELIXIR_TREE_URL}"
           echo "       ${downloaded_source}: ${KEEP_DIR}/v${RELEASE}.tar.gz"
@@ -727,8 +751,9 @@ do_main() {
           unpack_binaries "${RELEASE}" "${DIR}" 
           download_source "${RELEASE}"
           unpack_source "${RELEASE}" "${DIR}"
-          downloaded_binaries=$(message_downloaded "binaries")
-          downloaded_source=$(message_downloaded "source")
+
+          downloaded_binaries=$(get_message_downloaded "binaries")
+          downloaded_source=$(get_message_downloaded "source")
           echo "* [OK] Elixir v${RELEASE} [precompiled binaries & source code]"
           echo "       ${ELIXIR_TREE_URL}"
           echo "       ${downloaded_binaries}: ${KEEP_DIR}/Precompiled-v${RELEASE}.zip"

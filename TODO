@@ -9,7 +9,6 @@ TODO
 - [x] Confirm files are gonna be replaced if DIR is not empty when unpacking
 - [x] "--dir-keep" Where to keep downloaded files
 - [x] --download-script
-- [ ] Accept multiple single-char options together (ie. -duy = -d -u -y)
 - [x] Return error on unrecognized option passed
 - [ ] Create Makefile. Targets:
     - [ ] install / uninstall
@@ -21,3 +20,5 @@ TODO
           Reference: http://luv.asn.au/overheads/shells-talk.html
     - [ ] Use CI on Travis
         - [ ] Test on OS X
+- [ ] Accept multiple single-char options together (ie. -duy = -d -u -y)
+- [ ] Add header to get-elixir.sh
