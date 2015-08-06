@@ -140,7 +140,7 @@ exit_script() {
 }
 
 confirm() {
-  if [ "${ASSUME_YES}" -eq 1 ] || ([ "${ASSUME_YES}" -eq 0 ] && [ "${ASK_OVERWRITE}" -eq 0 ]); then
+  if [ ${ASSUME_YES} -eq 1 ] || ([ ${ASSUME_YES} -eq 0 ] && [ ${ASK_OVERWRITE} -eq 0 ]); then
     local reply=""
     printf '%s [Y/N]: ' "$*"
     read reply
@@ -294,13 +294,13 @@ get_message_downloaded() {
 # CONFIGURATION FUNCTIONS
 
 superseed_options() {
-  if [ "${ASSUME_YES}" -eq 0 ]; then
+  if [ ${ASSUME_YES} -eq 0 ]; then
     ASK_OVERWRITE=1
   fi
 }
 
 set_download_command_options() {
-  if [ "${SILENT_DOWNLOAD}" = 0 ]; then
+  if [ ${SILENT_DOWNLOAD} = 0 ]; then
     DOWNLOAD_COMMAND_OPTIONS="${DOWNLOAD_COMMAND_OPTIONS} -s"
   fi
   return 0

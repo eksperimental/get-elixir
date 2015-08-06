@@ -22,3 +22,4 @@ TODO
         - [ ] Test on OS X
 - [ ] Accept multiple single-char options together (ie. -duy = -d -u -y)
 - [ ] Add header to get-elixir.sh
+- [ ] Check for dependencies needed (ie. curl)
