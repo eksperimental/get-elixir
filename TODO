@@ -23,3 +23,4 @@ TODO
 - [ ] Accept multiple single-char options together (ie. -duy = -d -u -y)
 - [ ] Add header to get-elixir.sh
 - [ ] Check for dependencies needed (ie. curl)
+- [ ] -n, --assume-no Say no to every confirmation

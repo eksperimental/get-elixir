@@ -4,6 +4,8 @@
 trap "exit 1" TERM
 export TOP_PID=$$
 
+SOURCE_FILE="$_"
+
 APP_NAME="get-elixir"
 APP_VERSION="0.0.4-dev"
 APP_COMMAND="./get-elixir.sh"
@@ -139,6 +141,14 @@ exit_script() {
   kill -s TERM $TOP_PID
 }
 
+exit_script_on_error() {
+  if [ "$1" = "0" ] && [ $1 -eq 0 ]; then
+    return 0
+  else
+    exit_script "$2"
+  fi
+}
+
 confirm() {
   if [ ${ASSUME_YES} -eq 1 ] || ([ ${ASSUME_YES} -eq 0 ] && [ ${ASK_OVERWRITE} -eq 0 ]); then
     local reply=""
@@ -157,20 +167,34 @@ confirm() {
 ########################################################################
 # PERMISSION RELATED FUNCTIONS
 
+RETURN_FALSE_IF_LAST_FALSE='eval if [ "$?" = "0" ] && [ $? -eq 0 ]; then return 0; else return 1; fi'
+
 check_permissions() {
   case "${COMMAND}" in
     download|unpack)
       check_dir_write_permisions "${DIR}"
+      ${RETURN_FALSE_IF_LAST_FALSE}
       check_dir_write_permisions "${KEEP_DIR}"
+      ${RETURN_FALSE_IF_LAST_FALSE}
+      return 0
     ;;
     download-script)
       check_dir_write_permisions "${KEEP_DIR}"  # <-- It will create a dir if it doesn't exit
+      ${RETURN_FALSE_IF_LAST_FALSE}
       if [ -f "${KEEP_DIR}/get-elixir.sh" ]; then
         check_file_write_permisions "${KEEP_DIR}/get-elixir.sh"
+        ${RETURN_FALSE_IF_LAST_FALSE}
       fi
+      return 0
     ;;
     update-script)
       check_file_write_permisions "${SELF}"
+      ${RETURN_FALSE_IF_LAST_FALSE}
+      return 0
+    ;;
+    *)
+      echo "* Unknown command: ${COMMAND}" >&2
+      return 1
     ;;
   esac
 }
@@ -182,10 +206,12 @@ check_dir_write_permisions() {
     if [ -w "${dir}" ]; then
       return 0
     else
-      exit_script "* [ERROR] Cannot write to directory: ${dir}: Permission denied"
+      echo "* [ERROR] Cannot write to directory: ${dir}: Permission denied" >&2
+      return 1
     fi
   else 
-    exit_script "* [ERROR] Cannot create directory: ${dir}: Permission denied"
+    echo "* [ERROR] Cannot create directory: ${dir}: Permission denied" >&2
+    return 1
   fi
 }
 
@@ -194,7 +220,8 @@ check_file_write_permisions() {
   if [ -w "${file}" ]; then
     return 0
   else
-    exit_script "* [ERROR] Cannot write to file: ${file}: Permission denied"
+    echo "* [ERROR] Cannot write to file: ${file}: Permission denied" >&2
+    return 1
   fi
 }
 
@@ -621,6 +648,13 @@ do_parse_options() {
   done
 }
 
+do_setup(){
+  do_instantiate_vars
+  do_parse_options "$@"
+  superseed_options
+  set_download_command_options
+}
+
 do_main() {
   # Show short_help if no options provided
   if [ $# = 0 ]; then
@@ -628,10 +662,8 @@ do_main() {
     exit_script
   fi
 
-  do_instantiate_vars
-  do_parse_options "$@"
-  superseed_options
-  set_download_command_options
+  # set all variables
+  do_setup "$@"
 
   # check for options that should return inmediately
   case "${COMMAND}" in
@@ -645,6 +677,8 @@ do_main() {
     ;;
     download-script)
       check_permissions "${COMMAND}"
+      exit_script_on_error $?
+
       download_script
       local downloaded_script=$(get_message_downloaded "script")
       echo "* [OK] ${downloaded_script}: ${KEEP_DIR}/get-elixir.sh"
@@ -652,6 +686,8 @@ do_main() {
     ;;
     update-script)
       check_permissions "${COMMAND}"
+      exit_script_on_error $?
+
       update_script
       return 0
     ;;
@@ -673,6 +709,7 @@ do_main() {
 
   # we check permissions before doing any http request
   check_permissions "${COMMAND}"
+  exit_script_on_error $?
   
   # Get latest release if needed
   if [ "${RELEASE}" = "latest" ]; then
@@ -767,5 +804,15 @@ do_main() {
 
 SELF=$(readlink_f "$0")
 #SCRIPT_PATH=$(dirname "$SELF")
-do_main "$@"
-exit 0
+
+# Note: This is the only easy way to find out if the file is being
+# sourced by other script, or exectuted directedly.
+# So, if you ever want to source this scrpit, make sure the name of your calling
+# file is the same as this one.
+
+SCRIPT_CALLED="$(basename "$0")"
+SCRIPT_SOURCED="$(basename ${APP_COMMAND})"
+if [ "${SCRIPT_CALLED}" = "${SCRIPT_SOURCED}" ]; then
+  do_main "$@"
+  exit 0
+fi
