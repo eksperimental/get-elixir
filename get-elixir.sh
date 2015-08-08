@@ -176,65 +176,6 @@ confirm() {
 }
 
 ########################################################################
-# PERMISSION RELATED FUNCTIONS
-
-check_permissions() {
-  case "${COMMAND}" in
-    download|unpack)
-      check_dir_write_permisions "${DIR}" ||
-        return 1
-      check_dir_write_permisions "${KEEP_DIR}" ||
-        return 1
-      return 0
-    ;;
-    download-script)
-      check_dir_write_permisions "${KEEP_DIR}" ||  # <-- It will create a dir if it doesn't exit
-        return 1
-      if [ -f "${KEEP_DIR}/get-elixir.sh" ]; then
-        check_file_write_permisions "${KEEP_DIR}/get-elixir.sh" ||
-          return 1
-      fi
-      return 0
-    ;;
-    update-script)
-      check_file_write_permisions "${SELF}" ||
-        return 1
-      return 0
-    ;;
-    *)
-      echo "* Unknown command: ${COMMAND}" >&2
-      return 1
-    ;;
-  esac
-}
-
-check_dir_write_permisions() {
-  local dir="$1"
-  mkdir -p "${dir}" 2> /dev/null
-  if [ $? -eq 0 ]; then
-    if [ -w "${dir}" ]; then
-      return 0
-    else
-      echo "* [ERROR] Cannot write to directory: ${dir}: Permission denied" >&2
-      return 1
-    fi
-  else 
-    echo "* [ERROR] Cannot create directory: ${dir}: Permission denied" >&2
-    return 1
-  fi
-}
-
-check_file_write_permisions() {
-  local file="$1"
-  if [ -w "${file}" ]; then
-    return 0
-  else
-    echo "* [ERROR] Cannot write to file: ${file}: Permission denied" >&2
-    return 1
-  fi
-}
-
-########################################################################
 # HELPER FUNCTIONS: get-elixir
 
 sanitize_release() {
@@ -325,6 +266,65 @@ get_message_downloaded() {
       fi
       ;;
   esac
+}
+
+########################################################################
+# PERMISSION RELATED FUNCTIONS
+
+check_permissions() {
+  case "${COMMAND}" in
+    download|unpack)
+      check_dir_write_permisions "${DIR}" ||
+        return 1
+      check_dir_write_permisions "${KEEP_DIR}" ||
+        return 1
+      return 0
+    ;;
+    download-script)
+      check_dir_write_permisions "${KEEP_DIR}" ||  # <-- It will create a dir if it doesn't exit
+        return 1
+      if [ -f "${KEEP_DIR}/get-elixir.sh" ]; then
+        check_file_write_permisions "${KEEP_DIR}/get-elixir.sh" ||
+          return 1
+      fi
+      return 0
+    ;;
+    update-script)
+      check_file_write_permisions "${SELF}" ||
+        return 1
+      return 0
+    ;;
+    *)
+      echo "* Unknown command: ${COMMAND}" >&2
+      return 1
+    ;;
+  esac
+}
+
+check_dir_write_permisions() {
+  local dir="$1"
+  mkdir -p "${dir}" 2> /dev/null
+  if [ $? -eq 0 ]; then
+    if [ -w "${dir}" ]; then
+      return 0
+    else
+      echo "* [ERROR] Cannot write to directory: ${dir}: Permission denied" >&2
+      return 1
+    fi
+  else 
+    echo "* [ERROR] Cannot create directory: ${dir}: Permission denied" >&2
+    return 1
+  fi
+}
+
+check_file_write_permisions() {
+  local file="$1"
+  if [ -w "${file}" ]; then
+    return 0
+  else
+    echo "* [ERROR] Cannot write to file: ${file}: Permission denied" >&2
+    return 1
+  fi
 }
 
 ########################################################################
