@@ -4,39 +4,40 @@
 trap "exit 1" TERM
 export TOP_PID=$$
 
-SOURCE_FILE="$_"
 
-APP_NAME="get-elixir"
-APP_VERSION="0.0.4-dev"
-APP_COMMAND="./get-elixir.sh"
-APP_URL="https://github.com/eksperimental/get-elixir"
-APP_RELEASES_URL="https://github.com/eksperimental/get-elixir/releases"
-APP_RELEASES_JSON_URL="https://api.github.com/repos/elixir-lang/elixir/releases"
-ELIXIR_CSV_URL="https://github.com/elixir-lang/elixir-lang.github.com/raw/master/elixir.csv"
-SELF="" # set at the bottom of the script
-#SCRIPT_PATH="" # set at the bottom of the script
-
-DEFAULT_RELEASE="latest"
-#ARGS VARIABLES + DEFAULT 
 do_instantiate_vars() {
+  APP_NAME="get-elixir"
+  APP_VERSION="0.0.4-dev"
+  APP_COMMAND="./get-elixir.sh"
+  APP_URL="https://github.com/eksperimental/get-elixir"
+  APP_RELEASES_URL="https://github.com/eksperimental/get-elixir/releases"
+  APP_RELEASES_JSON_URL="https://api.github.com/repos/elixir-lang/elixir/releases"
+  ELIXIR_CSV_URL="https://github.com/elixir-lang/elixir-lang.github.com/raw/master/elixir.csv"
+  SELF="" # set at the bottom of the script
+  #SCRIPT_PATH="" # set at the bottom of the script
+
+  DEFAULT_RELEASE="latest"
+
   PACKAGE_TYPE=""  # <= required to be set via command options
   COMMAND="download"
   RELEASE="${DEFAULT_RELEASE}"
   DIR="elixir" #<== do no use trailing slashes
-  #eval "DIR=~/.elixir"  #<== needed to expand, in case we use "~" in default dir
+  #eval "DIR=~/.elixir"  #<== needed to expand, in case we use "~" in default $DIR
   SILENT_DOWNLOAD=1
   DOWNLOAD_COMMAND_OPTIONS="-fL"
   ASSUME_YES=1
   VERBOSE_UNPACK=1
   ASK_OVERWRITE=1
   KEEP_DIR="."
+
+  # INTERNAL USE
+  USED_EXISTING_BINARIES=1
+  USED_EXISTING_SOURCE=1
+  USED_EXISTING_SCRIPT=1
+
+  SELF=$(readlink_f "$0")
+  #SCRIPT_PATH=$(dirname "$SELF")  
 }
-
-# INTERNAL USE
-USED_EXISTING_BINARIES=1
-USED_EXISTING_SOURCE=1
-USED_EXISTING_SCRIPT=1
-
 
 ########################################################################
 # FUNCTIONS
@@ -44,15 +45,18 @@ USED_EXISTING_SCRIPT=1
 short_help() {
   echo "${APP_COMMAND}: missing arguments.
 
-  Usage: ./get-elixir.sh (--source | --binaries)
-                         [--unpack]
-                         [--release <release_number>]
-                         [--dir <dir>]
+  Usage: ./get-elixir.sh package_type... [options...]
+
+    ./get-elixir.sh [--binaries ] [--source] [--unpack] [--release <value>]
+                    [--dir <dir>] [--keep-dir <dir>]
+                    [--silent-download] [--verbose-unpack]
+                    [--assume-yes | --ask-overwrite]  
 
   Example:
-    ${APP_COMMAND} unpack source
+    ${APP_COMMAND} --source
+    ${APP_COMMAND} --source --unpack --release 1.0.0
 
-  Try '${APP_COMMAND} --help' for more information."
+  Try '${APP_COMMAND} --help' for more information and additional commands."
 }
 
 help() {
@@ -61,36 +65,51 @@ help() {
   Get any release of the Elixir programming language,
   without leaving the comfort of your command line.
 
-  Usage: ./get-elixir.sh <package_type>... [<options>...]
+  Usage:
+    ./get-elixir.sh package_type... [options...]
+    ./get-elixir.sh command... [options...]
+
+    ./get-elixir.sh [--binaries ] [--source] [--unpack] [--release <value>]
+                    [--dir <dir>] [--keep-dir <dir>]
+                    [--silent-download] [--verbose-unpack]
+                    [--assume-yes | --ask-overwrite]
+    ./get-elixir.sh --help
+    ./get-elixir.sh --version
+    ./get-elixir.sh --update-script
+    ./get-elixir.sh --download-script [--keep-dir <dir>]
+    ./get-elixir.sh --list-releases
+    ./get-elixir.sh --list-final-releases
 
   Package Types:
-    -b, --binaries       Download precompiled binaries
-    -s, --source         Download source code
+    -b, --binaries          Download precompiled binaries
+    -s, --source            Download source code
   
-  Main Options:
-    -u, --unpack         Unpacks the package(s) once downloaded
-    -r, --release        Elixir release number
-                         'latest' is the default option
-                         Examples: 'latest', '1.0.5', '1.0.0-rc2'
-    -d, --dir            Directory where you want to unpack Elixir.
-                         Default value: '${DIR}'
-  
-  Secondary Options:
+  Options:
+    -u, --unpack            Unpacks the package(s) once downloaded
+    -r, --release           Elixir release number
+                              'latest' is the default option
+                              Examples: 'latest', '1.0.5', '1.0.0-rc2'
+    -d, --dir               Directory where you want to unpack Elixir.
+    -k, --keep-dir          Directory where you want to keep downloaded files
+                              Default value: '${DIR}'
+        --silent-download   Silent download (Hide status)
+        --verbose-unpack    Be verbose when unpacking files
+    -y, --assume-yes        Assume 'Yes' to all confirmations, and do not prompt
+        --ask-overwrite     Confirmation needed before overwritting any file.
+                              This is superseeded by --assume-yes.
+                              It is not recommended to use this option, unless
+                              you have a specific reason to do it.
+
+  Commands:
     -h, --help                 Prints help menu
     -v, --version              Prints script version information
-        --update-script        Replace this script by downloading the latest release
-        --download-script      Download the latest release of this script to the
-                               specified location (use --keep-dir)
-        --list-releases        Lists all Elixir releases (final and pre-releases)
+        --update-script        Replace this script by downloading the latest
+                                 release
+        --download-script      Download the latest release of this script to
+                                 the specified location (use --keep-dir)
+        --list-releases        Lists all Elixir releases (final and
+                                 pre-releases)
         --list-final-releases  Lists final Elixir releases
-        --silent-download      Silent download (Hide status)
-        --verbose-unpack       Be verbose when unpacking files
-    -k, --keep-dir             Directory where you want to keep downloaded files
-    -y, --assume-yes           Assume 'Yes' to all confirmations, and do not prompt
-        --ask-overwrite        Confirmation needed before overwritting any file.
-                               This is superseeded by --assume-yes.
-                               It is not recommended to use this option, unless you
-                               have a specific reason to do it.
 
   Usage Examples:
 
@@ -141,14 +160,6 @@ exit_script() {
   kill -s TERM $TOP_PID
 }
 
-exit_script_on_error() {
-  if [ "$1" = "0" ] && [ $1 -eq 0 ]; then
-    return 0
-  else
-    exit_script "$2"
-  fi
-}
-
 confirm() {
   if [ ${ASSUME_YES} -eq 1 ] || ([ ${ASSUME_YES} -eq 0 ] && [ ${ASK_OVERWRITE} -eq 0 ]); then
     local reply=""
@@ -167,29 +178,27 @@ confirm() {
 ########################################################################
 # PERMISSION RELATED FUNCTIONS
 
-RETURN_FALSE_IF_LAST_FALSE='eval if [ "$?" = "0" ] && [ $? -eq 0 ]; then return 0; else return 1; fi'
-
 check_permissions() {
   case "${COMMAND}" in
     download|unpack)
-      check_dir_write_permisions "${DIR}"
-      ${RETURN_FALSE_IF_LAST_FALSE}
-      check_dir_write_permisions "${KEEP_DIR}"
-      ${RETURN_FALSE_IF_LAST_FALSE}
+      check_dir_write_permisions "${DIR}" ||
+        return 1
+      check_dir_write_permisions "${KEEP_DIR}" ||
+        return 1
       return 0
     ;;
     download-script)
-      check_dir_write_permisions "${KEEP_DIR}"  # <-- It will create a dir if it doesn't exit
-      ${RETURN_FALSE_IF_LAST_FALSE}
+      check_dir_write_permisions "${KEEP_DIR}" ||  # <-- It will create a dir if it doesn't exit
+        return 1
       if [ -f "${KEEP_DIR}/get-elixir.sh" ]; then
-        check_file_write_permisions "${KEEP_DIR}/get-elixir.sh"
-        ${RETURN_FALSE_IF_LAST_FALSE}
+        check_file_write_permisions "${KEEP_DIR}/get-elixir.sh" ||
+          return 1
       fi
       return 0
     ;;
     update-script)
-      check_file_write_permisions "${SELF}"
-      ${RETURN_FALSE_IF_LAST_FALSE}
+      check_file_write_permisions "${SELF}" ||
+        return 1
       return 0
     ;;
     *)
@@ -229,14 +238,16 @@ check_file_write_permisions() {
 # HELPER FUNCTIONS: get-elixir
 
 sanitize_release() {
-  # remove v from release,
-  # and after that, any "../"
-  printf '%s' "$1" | sed -e 's/^v//g;s@^\.\./@@g;'
+  # remove any "../"
+  # and after that remove "v" from the beginning 
+  printf '%s' "$1" | sed -e 's@\.\./@@g' -e 's/^v//g'
 }
 
 sanitize_dir() {
-  local dir=$(printf '%s' "$1" | sed -e 's@/$@@g')
-  if [ -z "${dir}" ]; then
+  # Removes trailing "/"
+  # If the results its empty, it will echo "."
+  local dir=$(printf '%s' "$1" | sed -e 's@/\{1,\}$@@g')
+  if [ "${dir}" = "" ]; then
     printf '.'
   else
     printf '%s' "${dir}"
@@ -244,48 +255,47 @@ sanitize_dir() {
 }
 
 get_latest_release() {
-  local release
-  release=$(curl -sfL "${ELIXIR_CSV_URL}" | sed '2q;d' | cut -d , -f1)
-  if [ "${release}" = "" ]; then 
-    echo "* [ERROR] Latest Elixir release number couldn't be retrieved from ${ELIXIR_CSV_URL}" >&2
-    exit_script
-  else
+  local release="$(curl -sfL "${ELIXIR_CSV_URL}" | sed '2q;d' | cut -d , -f1)"
+  if [ "${release}" != "" ]; then 
     echo "${release}"
+  else
+    echo "* [ERROR] Latest Elixir release number couldn't be retrieved from ${ELIXIR_CSV_URL}" >&2
+    return 1
   fi
 }
 
 get_elixir_final_releases() {
-  local releases
-  releases=$(curl -sfL "${ELIXIR_CSV_URL}" | tail -n +2 | cut -d , -f1)
-  if [ "${releases}" = "" ]; then
+  local releases="$(curl -sfL "${ELIXIR_CSV_URL}" | tail -n +2 | cut -d , -f1)"
+  if [ "${releases}" != "" ]; then
+    echo "${releases}"
+  else
     echo "* [ERROR] Elixir's final release numbers couldn't be retrieved from" >&2
     echo "  ${ELIXIR_CSV_URL}" >&2
-    exit_script
-  else
-    echo "${releases}"
+    return 1
   fi
 }
 
 get_elixir_releases() {
-  local releases
-  releases=$(curl -sfL "${APP_RELEASES_JSON_URL}" | grep "tag_name" | cut -d':' -f2 | sed 's@ \{1,\}"@@g' | sed 's@",@@g')
-  if [ "${releases}" = "" ]; then
+  local releases="$(curl -sfL "${APP_RELEASES_JSON_URL}" | grep "tag_name" | \
+                    cut -d':' -f2 | sed -e 's@ \{1,\}"@@g' -e 's@\",@@g')"
+  if [ "${releases}" != "" ]; then
+    echo "${releases}"
+  else
     echo "* [ERROR] Elixir release numbers couldn't be retrieved from" >&2
     echo "  ${APP_RELEASES_JSON_URL}" >&2
-    exit_script
-  else
-    echo "${releases}"
+    return 1
   fi
 }
 
 get_latest_script_version() {
-  local release=$(curl -sfI "${APP_RELEASES_URL}/latest" |  grep "Location: " | tr '\r' '\0' | tr '\n' '\0' | rev | cut -d'/' -f1 | rev)
-  if [ "${release}" = "" ]; then
+  local release="$(curl -sfI "${APP_RELEASES_URL}/latest" |  grep "Location: " | \
+                   tr '\r' '\0' | tr '\n' '\0' | rev | cut -d'/' -f1 | rev)"
+  if [ "${release}" != "" ]; then
+    sanitize_release "${release}"
+  else
     echo "* [ERROR] Latest ${APP_NAME} release number couldn't be retrieved from" >&2
     echo "  ${APP_RELEASES_URL}" >&2
-    exit_script
-  else
-    sanitize_release "${release}"
+    return 1
   fi
 }
 
@@ -330,7 +340,6 @@ set_download_command_options() {
   if [ ${SILENT_DOWNLOAD} = 0 ]; then
     DOWNLOAD_COMMAND_OPTIONS="${DOWNLOAD_COMMAND_OPTIONS} -s"
   fi
-  return 0
 }
 
 get_unpack_verbose_option() {
@@ -419,7 +428,7 @@ fi
     echo "          For a list of releases, run:" >&2
     echo "          ${APP_COMMAND} --list-releases" >&2
     fi
-    exit_script
+    return 1
   fi
   return 0
 }
@@ -448,7 +457,7 @@ fi
     echo "          For a list of releases, run:" >&2
     echo "          ${APP_COMMAND} --list-releases" >&2
     fi
-    exit_script
+    return 1
   fi
   return 0
 }
@@ -472,7 +481,7 @@ unpack_source() {
   if [ $? -ne 0 ]; then
     echo "* [ERROR] \"${KEEP_DIR}/${file_name}\" could not be unpacked to ${dir}" >&2
     echo "          Check the file permissions or for a tar.gz corrupt file." >&2
-    exit_script
+    return 1
   fi
   
   rm -rf "${tmp_dir}"
@@ -491,7 +500,7 @@ unpack_binaries() {
   if [ $? -ne 0 ]; then
     echo "* [ERROR] \"${file}\" could not be unpacked to ${dir}" >&2
     echo "          Check the file permissions." >&2
-    exit_script
+    return 1
   fi
 }
 
@@ -503,7 +512,7 @@ do_download_script() {
   if [ $? -ne 0 ] || [ ! -f "${local_dest}" ]; then
     echo "* [ERROR] ${APP_NAME} could not be downloaded from" >&2
     echo "          ${remote_script_url}" >&2
-    exit_script
+    return 1
   fi
   return 0
 }
@@ -511,6 +520,8 @@ do_download_script() {
 download_script() {
   echo "* Retrieving latest ${APP_NAME} release number..."
   local latest_script_version=$(get_latest_script_version)
+  test -z "${latest_script_version}" &&
+    return 1
   local file_name="get-elixir.sh"
   local remote_script_url="${APP_URL}/raw/v${latest_script_version}/${file_name}"
 
@@ -526,13 +537,16 @@ if [ -f "${KEEP_DIR}/${file_name}" ]; then
 fi
 
   echo "* Downloading ${remote_script_url}"
-  do_download_script "${remote_script_url}" "${KEEP_DIR}/${file_name}"
+  do_download_script "${remote_script_url}" "${KEEP_DIR}/${file_name}" ||
+    return 1
   return 0
 }
 
 update_script() {
   echo "* Retrieving latest ${APP_NAME} release number..."
   local latest_script_version=$(get_latest_script_version)
+  test -z "${latest_script_version}" &&
+    return 1
   local remote_script_url="${APP_URL}/raw/v${latest_script_version}/get-elixir.sh"
   
 if [ "${latest_script_version}" != "${APP_VERSION}" ]; then
@@ -541,7 +555,8 @@ if [ "${latest_script_version}" != "${APP_VERSION}" ]; then
   Do you confirm?"
 
   if [ $? -eq 0 ]; then
-    do_download_script "${remote_script_url}" "${SELF}"
+    do_download_script "${remote_script_url}" "${SELF}" ||
+      return 1
     chmod +x "${local_dest}"
     echo "* [OK] ${APP_NAME} succesfully updated."
   else
@@ -640,7 +655,8 @@ do_parse_options() {
       *)
           # TODO: break on unrecognized option
           eval "local option=\${$POS}"
-          exit_script "* [ERROR] Unrecognized option ${option}"
+          echo "* [ERROR] Unrecognized option ${option}" >&2
+          return 1
           break
           ;;
     esac
@@ -648,22 +664,25 @@ do_parse_options() {
   done
 }
 
-do_setup(){
-  do_instantiate_vars
-  do_parse_options "$@"
-  superseed_options
-  set_download_command_options
+do_setup_options() {
+  do_parse_options "$@" ||
+    return 1
+  superseed_options ||
+    return 1
+  set_download_command_options ||
+    return 1
 }
 
 do_main() {
   # Show short_help if no options provided
   if [ $# = 0 ]; then
     short_help >&2
-    exit_script
+    exit 1
   fi
 
   # set all variables
-  do_setup "$@"
+  do_setup_options "$@" ||
+    exit 1
 
   # check for options that should return inmediately
   case "${COMMAND}" in
@@ -676,27 +695,30 @@ do_main() {
       return 0
     ;;
     download-script)
-      check_permissions "${COMMAND}"
-      exit_script_on_error $?
+      check_permissions "${COMMAND}" ||
+        exit 1
 
-      download_script
+      download_script ||
+        exit 1
       local downloaded_script=$(get_message_downloaded "script")
       echo "* [OK] ${downloaded_script}: ${KEEP_DIR}/get-elixir.sh"
       return 0
     ;;
     update-script)
-      check_permissions "${COMMAND}"
-      exit_script_on_error $?
+      check_permissions "${COMMAND}" ||
+        exit 1
 
       update_script
       return 0
     ;;
     list-releases)
-      get_elixir_releases
+      get_elixir_releases ||
+        exit 1
       return 0
     ;;
     list-final-releases)
-      get_elixir_final_releases
+      get_elixir_final_releases ||
+        exit 1
       return 0
     ;;
   esac
@@ -704,17 +726,19 @@ do_main() {
   # Check for needed commands
   if [ "${PACKAGE_TYPE}" = "" ]; then
     echo "* [ERROR] Unrecognized package type. Try '--binaries' or '--source'." >&2
-    exit_script
+    exit 1
   fi
 
   # we check permissions before doing any http request
-  check_permissions "${COMMAND}"
-  exit_script_on_error $?
+  check_permissions "${COMMAND}" ||
+    exit 1
   
   # Get latest release if needed
   if [ "${RELEASE}" = "latest" ]; then
     echo "* Retrieving latest Elixir release number..."
     RELEASE=$(get_latest_release)
+    test -z "${RELEASE}" &&
+      exit 1
   fi
 
   # Define variables based on $RELEASE
@@ -728,7 +752,8 @@ do_main() {
     download)
       case "${PACKAGE_TYPE}" in
         "binaries")
-          download_binaries "${RELEASE}"
+          download_binaries "${RELEASE}" ||
+            exit 1
           
           downloaded_binaries=$(get_message_downloaded "binaries")
           echo "* [OK] Elixir v${RELEASE} [precompiled binaries]"
@@ -737,7 +762,8 @@ do_main() {
         ;;
 
         source)
-          download_source "${RELEASE}"
+          download_source "${RELEASE}" ||
+            exit 1
           
           downloaded_source=$(get_message_downloaded "source")
           echo "* [OK] Elixir v${RELEASE} [source code]"
@@ -746,9 +772,11 @@ do_main() {
         ;;
 
         binaries_source)
-          download_binaries "${RELEASE}"
-          download_source "${RELEASE}"
-          
+          download_binaries "${RELEASE}" ||
+            exit 1
+          download_source "${RELEASE}" ||
+            exit 1
+
           downloaded_binaries=$(get_message_downloaded "binaries")
           downloaded_source=$(get_message_downloaded "source")
           echo "* [OK] Elixir v${RELEASE} [precompiled binaries & source code]"
@@ -762,8 +790,10 @@ do_main() {
     "unpack")
       case "${PACKAGE_TYPE}" in
         "binaries")
-          download_binaries "${RELEASE}"
-          unpack_binaries "${RELEASE}" "${DIR}"
+          download_binaries "${RELEASE}" ||
+            exit 1
+          unpack_binaries "${RELEASE}" "${DIR}" ||
+            exit 1
           
           downloaded_binaries=$(get_message_downloaded "binaries")
           echo "* [OK] Elixir v${RELEASE} [precompiled binaries]"
@@ -773,8 +803,10 @@ do_main() {
         ;;
 
         "source")
-          download_source "${RELEASE}"
-          unpack_source "${RELEASE}" "${DIR}"
+          download_source "${RELEASE}" ||
+            exit 1
+          unpack_source "${RELEASE}" "${DIR}" ||
+            exit 1
           
           downloaded_source=$(get_message_downloaded "source")
           echo "* [OK] Elixir v${RELEASE} [Source]"
@@ -784,10 +816,14 @@ do_main() {
         ;;
 
         "binaries_source")
-          download_binaries "${RELEASE}"
-          unpack_binaries "${RELEASE}" "${DIR}" 
-          download_source "${RELEASE}"
-          unpack_source "${RELEASE}" "${DIR}"
+          download_binaries "${RELEASE}" ||
+            exit 1
+          unpack_binaries "${RELEASE}" "${DIR}" ||
+            exit 1 
+          download_source "${RELEASE}" ||
+            exit 1
+          unpack_source "${RELEASE}" "${DIR}" ||
+            exit 1
 
           downloaded_binaries=$(get_message_downloaded "binaries")
           downloaded_source=$(get_message_downloaded "source")
@@ -802,10 +838,10 @@ do_main() {
   esac
 }
 
-SELF=$(readlink_f "$0")
-#SCRIPT_PATH=$(dirname "$SELF")
+do_instantiate_vars
 
-# Note: This is the only easy way to find out if the file is being
+# Note: This is the only easy way I found that it is 
+# possible to find out whether the file is being
 # sourced by other script, or exectuted directedly.
 # So, if you ever want to source this scrpit, make sure the name of your calling
 # file is the same as this one.
