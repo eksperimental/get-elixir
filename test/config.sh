@@ -36,3 +36,8 @@ oneTimeTearDown(){
   #rm -rf "${DIR_EXIST_0}"
   echo ""
 }
+
+setUp() {
+  CURL_OPTIONS="--connect-timeout 5 --retry 0"
+  #CURL_OPTIONS=""
+}

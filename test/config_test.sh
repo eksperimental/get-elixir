@@ -5,8 +5,8 @@
 #set -x
 . ../get-elixir.sh
 
-do_instantiate_vars() {
-}
+#do_instantiate_vars() {
+#}
 
 # load and run shUnit2
 [ -n "${ZSH_VERSION:-}" ] && SHUNIT_PARENT=$0

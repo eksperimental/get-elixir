@@ -36,7 +36,10 @@ do_instantiate_vars() {
   USED_EXISTING_SCRIPT=1
 
   SELF=$(readlink_f "$0")
-  #SCRIPT_PATH=$(dirname "$SELF")  
+  #SCRIPT_PATH=$(dirname "$SELF")
+
+  # COMMAND OPTIONS
+  CURL_OPTIONS=""
 }
 
 ########################################################################
@@ -135,10 +138,17 @@ help() {
 ########################################################################
 # HELPER FUNCTIONS : General
 
+curl() {
+  #echo "Curl function being called"
+  command curl ${CURL_OPTIONS} $@
+}
+
 #posix / helper functions
 readlink_f () {
+  local filename
+  
   cd "$(dirname "$1")" > /dev/null
-  local filename="$(basename "$1")"
+  filename="$(basename "$1")"
   if [ -h "${filename}" ]; then
     readlink_f "$(readlink "${filename}")"
   else
@@ -161,8 +171,10 @@ exit_script() {
 }
 
 confirm() {
+  local reply
+  
   if [ ${ASSUME_YES} -eq 1 ] || ([ ${ASSUME_YES} -eq 0 ] && [ ${ASK_OVERWRITE} -eq 0 ]); then
-    local reply=""
+    reply=""
     printf '%s [Y/N]: ' "$*"
     read reply
     if printf '%s\n' "${reply}" | grep -Eq '^[yY].*'; then
@@ -185,9 +197,11 @@ sanitize_release() {
 }
 
 sanitize_dir() {
+  local dir
+  
   # Removes trailing "/"
   # If the results its empty, it will echo "."
-  local dir=$(printf '%s' "$1" | sed -e 's@/\{1,\}$@@g')
+  dir=$(printf '%s' "$1" | sed -e 's@/\{1,\}$@@g')
   if [ "${dir}" = "" ]; then
     printf '.'
   else
@@ -196,7 +210,10 @@ sanitize_dir() {
 }
 
 get_latest_release() {
-  local release="$(curl -sfL "${ELIXIR_CSV_URL}" | sed '2q;d' | cut -d , -f1)"
+  local release
+  
+  release="$(curl -sfL "${ELIXIR_CSV_URL}" | sed '2q;d' | cut -d , -f1)"
+  
   if [ "${release}" != "" ]; then 
     echo "${release}"
   else
@@ -206,7 +223,10 @@ get_latest_release() {
 }
 
 get_elixir_final_releases() {
-  local releases="$(curl -sfL "${ELIXIR_CSV_URL}" | tail -n +2 | cut -d , -f1)"
+  local releases
+  
+  releases="$(curl -sfL "${ELIXIR_CSV_URL}" | tail -n +2 | cut -d , -f1)"
+  
   if [ "${releases}" != "" ]; then
     echo "${releases}"
   else
@@ -217,7 +237,9 @@ get_elixir_final_releases() {
 }
 
 get_elixir_releases() {
-  local releases="$(curl -sfL "${APP_RELEASES_JSON_URL}" | grep "tag_name" | \
+  local releases
+  
+  releases="$(curl -sfL "${APP_RELEASES_JSON_URL}" | grep "tag_name" | \
                     cut -d':' -f2 | sed -e 's@ \{1,\}"@@g' -e 's@\",@@g')"
   if [ "${releases}" != "" ]; then
     echo "${releases}"
@@ -229,7 +251,9 @@ get_elixir_releases() {
 }
 
 get_latest_script_version() {
-  local release="$(curl -sfI "${APP_RELEASES_URL}/latest" |  grep "Location: " | \
+  local release
+  
+  release="$(curl -sfI "${APP_RELEASES_URL}/latest" |  grep "Location: " | \
                    tr '\r' '\0' | tr '\n' '\0' | rev | cut -d'/' -f1 | rev)"
   if [ "${release}" != "" ]; then
     sanitize_release "${release}"
@@ -302,7 +326,9 @@ check_permissions() {
 }
 
 check_dir_write_permisions() {
-  local dir="$1"
+  local dir
+  dir="$1"
+  
   mkdir -p "${dir}" 2> /dev/null
   if [ $? -eq 0 ]; then
     if [ -w "${dir}" ]; then
@@ -318,7 +344,9 @@ check_dir_write_permisions() {
 }
 
 check_file_write_permisions() {
-  local file="$1"
+  local file
+  file="$1"
+
   if [ -w "${file}" ]; then
     return 0
   else
@@ -404,9 +432,10 @@ get_unpack_overwrite_option() {
 # MAIN FUNCTIONS
 
 download_source() {
-  local release="$1"
-  local file_name="v${release}.tar.gz"
-  local url="https://github.com/elixir-lang/elixir/archive/${file_name}"
+  local release file_name url
+  release="$1"
+  file_name="v${release}.tar.gz"
+  url="https://github.com/elixir-lang/elixir/archive/${file_name}"
 
 if [ -f "${KEEP_DIR}/${file_name}" ]; then
   confirm "* You are about to replace '${KEEP_DIR}/${file_name}'.
@@ -434,9 +463,11 @@ fi
 }
 
 download_binaries() {
-  local release="$1"
-  local file_name="Precompiled-v${release}.zip"
-  local url="https://github.com/elixir-lang/elixir/releases/download/v${release}/Precompiled.zip"
+  local release file_name url
+  
+  release="$1"
+  file_name="Precompiled-v${release}.zip"
+  url="https://github.com/elixir-lang/elixir/releases/download/v${release}/Precompiled.zip"
 
 if [ -f "${KEEP_DIR}/${file_name}" ]; then
   confirm "* You are about to replace '${KEEP_DIR}/${file_name}'.
@@ -463,13 +494,15 @@ fi
 }
 
 unpack_source() {
-  local release="$1"
-  local dir="$2"
-  local file_name="v${release}.tar.gz"
-  local verbose_tar="$(get_unpack_verbose_option tar)"
-  local overwrite_tar="$(get_unpack_overwrite_option tar)"
-  local overwrite_cp="$(get_unpack_overwrite_option cp)"
-  local tmp_dir="/tmp/${APP_NAME}-$(epoch_time)"
+  local release dir file_name verbose_tar overwrite_tar overwrite_cp tmp_dir
+  
+  release="$1"
+  dir="$2"
+  file_name="v${release}.tar.gz"
+  verbose_tar="$(get_unpack_verbose_option tar)"
+  overwrite_tar="$(get_unpack_overwrite_option tar)"
+  overwrite_cp="$(get_unpack_overwrite_option cp)"
+  tmp_dir="/tmp/${APP_NAME}-$(epoch_time)"
 
   mkdir -p "${dir}" &&
   mkdir -p "${tmp_dir}" &&
@@ -488,11 +521,14 @@ unpack_source() {
 }
 
 unpack_binaries() {
-  local release="$1"
-  local dir="$2"
-  local file="Precompiled-v${release}.zip"
-  local verbose_unzip="$(get_unpack_verbose_option unzip)"
-  local overwrite_unzip="$(get_unpack_overwrite_option unzip)"
+  local release dir file verbose_unzip overwrite_unzip
+  
+  release="$1"
+  dir="$2"
+  file="Precompiled-v${release}.zip"
+  verbose_unzip="$(get_unpack_verbose_option unzip)"
+  overwrite_unzip="$(get_unpack_overwrite_option unzip)"
+  
   mkdir -p "${dir}" && 
   #echo unzip ${verbose_unzip} ${overwrite_unzip} -d "${dir}" "${file}" &&
   unzip ${verbose_unzip} ${overwrite_unzip} -d "${dir}" "${file}"
@@ -505,8 +541,9 @@ unpack_binaries() {
 }
 
 do_download_script() {
-  local remote_script_url="$1"
-  local local_dest="$2"
+  local remote_script_url local_dest
+  remote_script_url="$1"
+  local_dest="$2"
 
   curl ${DOWNLOAD_COMMAND_OPTIONS} -o "${local_dest}" "${remote_script_url}"
   if [ $? -ne 0 ] || [ ! -f "${local_dest}" ]; then
@@ -518,12 +555,14 @@ do_download_script() {
 }
 
 download_script() {
+  local latest_script_version file_name remote_script_url
+  
   echo "* Retrieving latest ${APP_NAME} release number..."
-  local latest_script_version=$(get_latest_script_version)
+  latest_script_version=$(get_latest_script_version)
   test -z "${latest_script_version}" &&
     return 1
-  local file_name="get-elixir.sh"
-  local remote_script_url="${APP_URL}/raw/v${latest_script_version}/${file_name}"
+  file_name="get-elixir.sh"
+  remote_script_url="${APP_URL}/raw/v${latest_script_version}/${file_name}"
 
 if [ -f "${KEEP_DIR}/${file_name}" ]; then
   confirm "* You are about to replace '${KEEP_DIR}/${file_name}'.
@@ -543,11 +582,13 @@ fi
 }
 
 update_script() {
+  local latest_script_version remote_script_url
+
   echo "* Retrieving latest ${APP_NAME} release number..."
-  local latest_script_version=$(get_latest_script_version)
+  latest_script_version=$(get_latest_script_version)
   test -z "${latest_script_version}" &&
     return 1
-  local remote_script_url="${APP_URL}/raw/v${latest_script_version}/get-elixir.sh"
+  remote_script_url="${APP_URL}/raw/v${latest_script_version}/get-elixir.sh"
   
 if [ "${latest_script_version}" != "${APP_VERSION}" ]; then
   confirm "* You are about to replace '${SELF}'.
@@ -573,8 +614,9 @@ fi
 # Main functions
 
 do_parse_options() {
-  local POS=1
-  local SKIP
+  local POS SKIP
+  
+  POS=1
   while [ $POS -le $# ]; do
     SKIP=1
     eval "CURRENT=\${$POS}"
@@ -700,7 +742,9 @@ do_main() {
 
       download_script ||
         exit 1
-      local downloaded_script=$(get_message_downloaded "script")
+
+      local downloaded_script
+      downloaded_script=$(get_message_downloaded "script")
       echo "* [OK] ${downloaded_script}: ${KEEP_DIR}/get-elixir.sh"
       return 0
     ;;
@@ -746,8 +790,7 @@ do_main() {
   ELIXIR_TREE_URL="https://github.com/elixir-lang/elixir/tree/v${RELEASE}"
 
   # Do our logic
-  local downloaded_binaries
-  local downloaded_source
+  local downloaded_binaries downloaded_source
   case "${COMMAND}" in
     download)
       case "${PACKAGE_TYPE}" in
