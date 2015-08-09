@@ -1,4 +1,13 @@
 oneTimeSetUp(){
+  if [ ! -f "../${UTEST_SOURCE_FILE}" ]; then
+    echo "Downloading sources (v${UTEST_RELEASE}) required to speed up Unit Test"
+    ../get-elixir.sh --source --release ${UTEST_RELEASE} --keep-dir "../${UTEST_DOWNLOADED_DIR}" --silent-download
+  fi
+  if [ ! -f "../${UTEST_BINARIES_FILE}" ]; then
+    echo "Downloading binaries (v${UTEST_RELEASE}) required to speed up Unit Testing"
+    ../get-elixir.sh --binaries --release ${UTEST_RELEASE} --keep-dir "../${UTEST_DOWNLOADED_DIR}" --silent-download
+  fi
+
   DIR_EXIST="${__shunit_tmpDir}"
   DIR_NOT_EXIST="${__shunit_tmpDir}/DIR_NOT_EXIST"
   

@@ -3,5 +3,6 @@
 /Precompiled.zip
 /v*.tar.gz
 /v*.zip
+/test/downloaded/
 elixir.csv
 releases

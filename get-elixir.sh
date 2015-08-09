@@ -4,7 +4,6 @@
 trap "exit 1" TERM
 export TOP_PID=$$
 
-
 do_instantiate_vars() {
   APP_NAME="get-elixir"
   APP_VERSION="0.0.4-dev"
@@ -13,21 +12,21 @@ do_instantiate_vars() {
   APP_RELEASES_URL="https://github.com/eksperimental/get-elixir/releases"
   APP_RELEASES_JSON_URL="https://api.github.com/repos/elixir-lang/elixir/releases"
   ELIXIR_CSV_URL="https://github.com/elixir-lang/elixir-lang.github.com/raw/master/elixir.csv"
-  SELF="" # set at the bottom of the script
-  #SCRIPT_PATH="" # set at the bottom of the script
-
-  DEFAULT_RELEASE="latest"
+  SELF=$(readlink_f "$0")
+  SCRIPT_DIR=$(dirname "$SELF")
 
   PACKAGE_TYPE=""  # <= required to be set via command options
   COMMAND="download"
+  DEFAULT_RELEASE="latest"
   RELEASE="${DEFAULT_RELEASE}"
   DIR="elixir" #<== do no use trailing slashes
   #eval "DIR=~/.elixir"  #<== needed to expand, in case we use "~" in default $DIR
   SILENT_DOWNLOAD=1
   DOWNLOAD_COMMAND_OPTIONS="-fL"
   ASSUME_YES=1
-  VERBOSE_UNPACK=1
+  ASSUME_NO=1
   ASK_OVERWRITE=1
+  VERBOSE_UNPACK=1
   KEEP_DIR="."
 
   # INTERNAL USE
@@ -35,8 +34,12 @@ do_instantiate_vars() {
   USED_EXISTING_SOURCE=1
   USED_EXISTING_SCRIPT=1
 
-  SELF=$(readlink_f "$0")
-  #SCRIPT_PATH=$(dirname "$SELF")
+  # UNIT TEST
+  UTEST_DIR="test"
+  UTEST_DOWNLOADED_DIR="${UTEST_DIR}/downloaded"
+  UTEST_RELEASE="1.0.5"
+  UTEST_SOURCE_FILE="${UTEST_DOWNLOADED_DIR}/v${UTEST_RELEASE}.tar.gz"
+  UTEST_BINARIES_FILE="${UTEST_DOWNLOADED_DIR}/Precompiled-v${UTEST_RELEASE}.zip"
 
   # COMMAND OPTIONS
   CURL_OPTIONS=""
@@ -63,7 +66,7 @@ short_help() {
 }
 
 help() {
-  echo "${APP_NAME} version ${RELEASE}
+  echo "${APP_NAME} version ${APP_VERSION}
 
   Get any release of the Elixir programming language,
   without leaving the comfort of your command line.
@@ -72,10 +75,11 @@ help() {
     ./get-elixir.sh package_type... [options...]
     ./get-elixir.sh command... [options...]
 
-    ./get-elixir.sh [--binaries ] [--source] [--unpack] [--release <value>]
-                    [--dir <dir>] [--keep-dir <dir>]
-                    [--silent-download] [--verbose-unpack]
-                    [--assume-yes | --ask-overwrite]
+    ./get-elixir.sh [--binaries ] [--source]
+                    [--unpack [--dir <dir>] [--verbose-unpack]]
+                    [--release <value>] [--keep-dir <dir>]
+                    [--silent-download] 
+                    [--assume-yes | --assume-no | --ask-overwrite]
     ./get-elixir.sh --help
     ./get-elixir.sh --version
     ./get-elixir.sh --update-script
@@ -98,6 +102,7 @@ help() {
         --silent-download   Silent download (Hide status)
         --verbose-unpack    Be verbose when unpacking files
     -y, --assume-yes        Assume 'Yes' to all confirmations, and do not prompt
+    -n, --assume-no         Assume 'No' to all confirmations, and do not prompt
         --ask-overwrite     Confirmation needed before overwritting any file.
                               This is superseeded by --assume-yes.
                               It is not recommended to use this option, unless
@@ -171,10 +176,22 @@ exit_script() {
 }
 
 confirm() {
-  local reply
+  local reply ask
   
-  if [ ${ASSUME_YES} -eq 1 ] || ([ ${ASSUME_YES} -eq 0 ] && [ ${ASK_OVERWRITE} -eq 0 ]); then
-    reply=""
+  if [ ${ASSUME_YES} -eq 0 ]; then
+    return 0
+  elif [ ${ASSUME_NO} -eq 0 ]; then
+    return 1
+  elif [ ${ASK_OVERWRITE} -eq 0 ]; then
+    ask="yes"
+  else
+    ask="yes"
+  fi
+
+  if [ "${ask}" = "no" ]; then
+    return 1
+  else
+   reply=""
     printf '%s [Y/N]: ' "$*"
     read reply
     if printf '%s\n' "${reply}" | grep -Eq '^[yY].*'; then
@@ -182,8 +199,6 @@ confirm() {
     else
       return 1
     fi
-  else
-    return 0
   fi
 }
 
@@ -428,6 +443,23 @@ get_unpack_overwrite_option() {
   return 0
 }
 
+assume_yes() {
+  ASSUME_YES=0
+  ASK_OVERWRITE=1
+  superseed_options  
+}
+
+assume_no() {
+  #ASSUME_YES=1
+  ASSUME_NO=0
+  superseed_options  
+}
+
+ask_overwrite() {
+  ASK_OVERWRITE=0
+  superseed_options  
+}
+
 ########################################################################
 # MAIN FUNCTIONS
 
@@ -452,8 +484,8 @@ fi
   echo "* Downloading ${url}"
   curl ${DOWNLOAD_COMMAND_OPTIONS} -o "${KEEP_DIR}/${file_name}" "${url}"
   if [ ! -f "${KEEP_DIR}/${file_name}" ]; then
-    echo "* [ERROR] Elixir v${RELEASE} could not be downloaded from ${url}" >&2
-    if [ "${RELEASE}" != "${DEFAULT_RELEASE}" ]; then
+    echo "* [ERROR] Elixir v${release} could not be downloaded from ${url}" >&2
+    if [ "${release}" != "${DEFAULT_RELEASE}" ]; then
     echo "          For a list of releases, run:" >&2
     echo "          ${APP_COMMAND} --list-releases" >&2
     fi
@@ -464,7 +496,6 @@ fi
 
 download_binaries() {
   local release file_name url
-  
   release="$1"
   file_name="Precompiled-v${release}.zip"
   url="https://github.com/elixir-lang/elixir/releases/download/v${release}/Precompiled.zip"
@@ -483,8 +514,8 @@ fi
   echo "* Downloading ${url}"
   curl ${DOWNLOAD_COMMAND_OPTIONS} -o "${KEEP_DIR}/${file_name}" "${url}"
   if [ ! -f "${KEEP_DIR}/${file_name}" ]; then
-    echo "* [ERROR] Elixir v${RELEASE} could not be downloaded from ${url}" >&2
-    if [ "${RELEASE}" != "${DEFAULT_RELEASE}" ]; then
+    echo "* [ERROR] Elixir v${release} could not be downloaded from ${url}" >&2
+    if [ "${release}" != "${DEFAULT_RELEASE}" ]; then
     echo "          For a list of releases, run:" >&2
     echo "          ${APP_COMMAND} --list-releases" >&2
     fi
@@ -493,49 +524,60 @@ fi
   return 0
 }
 
+# unpack_source(release, dir)
+# upacks "${KEEP_DIR}/v${release}.tar.gz" to "${dir}"
 unpack_source() {
-  local release dir file_name verbose_tar overwrite_tar overwrite_cp tmp_dir
-  
+  local release dir file_name file verbose_tar overwrite_tar overwrite_cp tmp_dir
   release="$1"
   dir="$2"
   file_name="v${release}.tar.gz"
+  file="${KEEP_DIR}/${file_name}"
   verbose_tar="$(get_unpack_verbose_option tar)"
   overwrite_tar="$(get_unpack_overwrite_option tar)"
   overwrite_cp="$(get_unpack_overwrite_option cp)"
   tmp_dir="/tmp/${APP_NAME}-$(epoch_time)"
 
+  if [ ! -f ${file} ]; then
+    echo "* [ERROR] File not found: \"${file}\"" >&2
+    return 1
+  fi
+
   mkdir -p "${dir}" &&
   mkdir -p "${tmp_dir}" &&
   #echo tar -C "${tmp_dir}" ${verbose_tar} ${overwrite_tar} -xz -f "${KEEP_DIR}/${file_name}" && 
-  tar -C "${tmp_dir}" ${verbose_tar} ${overwrite_tar} -xz -f "${KEEP_DIR}/${file_name}" && 
-  #echo "cp -r ${overwrite_cp} ${tmp_dir}/elixir-${release}/*" "${dir}" &&
-  cp -r ${overwrite_cp} "${tmp_dir}/elixir-${release}"/* "${dir}"
-
+  tar -C "${tmp_dir}" ${verbose_tar} ${overwrite_tar} -xz -f "${file}"
   if [ $? -ne 0 ]; then
-    echo "* [ERROR] \"${KEEP_DIR}/${file_name}\" could not be unpacked to ${dir}" >&2
+    echo "* [ERROR] \"${file}\" could not be unpacked to ${dir}" >&2
     echo "          Check the file permissions or for a tar.gz corrupt file." >&2
+    rm -rf "${tmp_dir}" 2> /dev/null
     return 1
+  else
+    #echo "cp -r ${overwrite_cp} ${tmp_dir}/elixir-${release}/*" "${dir}" &&
+    cp -r ${overwrite_cp} "${tmp_dir}/elixir-${release}"/* "${dir}" &&
+    rm -rf "${tmp_dir}"
   fi
-  
-  rm -rf "${tmp_dir}"
 }
 
 unpack_binaries() {
-  local release dir file verbose_unzip overwrite_unzip
-  
+  local release dir file file_name verbose_unzip overwrite_unzip
   release="$1"
   dir="$2"
-  file="Precompiled-v${release}.zip"
+  file_name="Precompiled-v${release}.zip"
+  file="${KEEP_DIR}/${file_name}"
   verbose_unzip="$(get_unpack_verbose_option unzip)"
   overwrite_unzip="$(get_unpack_overwrite_option unzip)"
+
+  if [ ! -f ${file} ]; then
+    echo "* [ERROR] File not found: \"${file}\"" >&2
+    return 1
+  fi
   
-  mkdir -p "${dir}" && 
+  mkdir -p "${dir}" &&
   #echo unzip ${verbose_unzip} ${overwrite_unzip} -d "${dir}" "${file}" &&
   unzip ${verbose_unzip} ${overwrite_unzip} -d "${dir}" "${file}"
-  
   if [ $? -ne 0 ]; then
     echo "* [ERROR] \"${file}\" could not be unpacked to ${dir}" >&2
-    echo "          Check the file permissions." >&2
+    echo "          Check the file permissions or for a .zip corrupt file." >&2
     return 1
   fi
 }
@@ -644,13 +686,16 @@ do_parse_options() {
           SILENT_DOWNLOAD=0
           ;;
       -y|--assume-yes)
-          ASSUME_YES=0
+          assume_yes
+          ;;
+      -n|--assume-no)
+          assume_no
+          ;;
+      --ask-overwrite)
+          ask_overwrite
           ;;
       --verbose-unpack)
           VERBOSE_UNPACK=0
-          ;;
-      --ask-overwrite)
-          ASK_OVERWRITE=0
           ;;
       --download-script)
           COMMAND="download-script"

@@ -6,19 +6,47 @@
 . ../get-elixir.sh
 . ./config.sh
 
+setUp(){
+  do_instantiate_vars
+}
+
 test_confirm() {
   local actual
-  ASSUME_YES=0
-  ASK_OVERWRITE=1
+
+  do_instantiate_vars
+  assume_yes
   confirm "Please answer YES"
   actual=$?
-  assertSame 0 "${actual}"
+  ${_ASSERT_SAME_} 0 '"${actual}"'
 
-  #ASSUME_YES=1
+  do_instantiate_vars
+  assume_no
   #ASK_OVERWRITE=0
-  #confirm "please answer NO"
-  #local actual=$?
-  #assertSame 1 "${actual}"
+  confirm "please answer NO"
+  actual=$?
+  ${_ASSERT_SAME_} 1 '"${actual}"'
+  
+  # set both assume_yes and assume_no
+  do_instantiate_vars
+  assume_yes
+  assume_no
+  confirm "please answer YES"
+  actual=$?
+  ${_ASSERT_SAME_} 0 '"${actual}"'
+
+  # set both assume_no and assume_yes (different order) 
+  do_instantiate_vars
+  assume_no
+  assume_yes
+  confirm "please answer YES"
+  actual=$?
+  ${_ASSERT_SAME_} 0 '"${actual}"'
+
+  #do_instantiate_vars
+  #ask_overwrite
+  #confirm "Confirmation Needed. Please enter YES to pass test"
+  #actual=$?
+  #${_ASSERT_SAME_} 0 '"${actual}"'
 }
 
 test_epoch_time() {
