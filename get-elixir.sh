@@ -1,4 +1,5 @@
-#!/usr/bin/env sh
+#!/bin/sh
+
 
 #set -x
 trap "exit 1" TERM
@@ -7,7 +8,8 @@ export TOP_PID=$$
 do_instantiate_vars() {
   APP_NAME="get-elixir"
   APP_VERSION="0.0.4-dev"
-  APP_COMMAND="./get-elixir.sh"
+  APP_FILE_NAME="get-elixir.sh"
+  APP_COMMAND="./${APP_FILE_NAME}"
   APP_URL="https://github.com/eksperimental/get-elixir"
   APP_RELEASES_URL="https://github.com/eksperimental/get-elixir/releases"
   APP_RELEASES_JSON_URL="https://api.github.com/repos/elixir-lang/elixir/releases"
@@ -38,11 +40,15 @@ do_instantiate_vars() {
   UTEST_DIR="test"
   UTEST_DOWNLOADED_DIR="${UTEST_DIR}/downloaded"
   UTEST_RELEASE="1.0.5"
+  UTEST_SCRIPT_VERSION="0.0.2"
   UTEST_SOURCE_FILE="${UTEST_DOWNLOADED_DIR}/v${UTEST_RELEASE}.tar.gz"
   UTEST_BINARIES_FILE="${UTEST_DOWNLOADED_DIR}/Precompiled-v${UTEST_RELEASE}.zip"
+  UTEST_SCRIPT_FILE="${UTEST_DOWNLOADED_DIR}/${APP_FILE_NAME}"
 
   # COMMAND OPTIONS
   CURL_OPTIONS=""
+
+  do_instantiate_permanente_vars
 }
 
 ########################################################################
@@ -322,8 +328,8 @@ check_permissions() {
     download-script)
       check_dir_write_permisions "${KEEP_DIR}" ||  # <-- It will create a dir if it doesn't exit
         return 1
-      if [ -f "${KEEP_DIR}/get-elixir.sh" ]; then
-        check_file_write_permisions "${KEEP_DIR}/get-elixir.sh" ||
+      if [ -f "${KEEP_DIR}/${APP_FILE_NAME}" ]; then
+        check_file_write_permisions "${KEEP_DIR}/${APP_FILE_NAME}" ||
           return 1
       fi
       return 0
@@ -372,6 +378,11 @@ check_file_write_permisions() {
 
 ########################################################################
 # CONFIGURATION FUNCTIONS
+
+# this is meant to be overridden by a user defined function
+do_instantiate_permanente_vars() {
+  CURL_OPTIONS=""
+}
 
 superseed_options() {
   if [ ${ASSUME_YES} -eq 0 ]; then
@@ -583,12 +594,26 @@ unpack_binaries() {
 }
 
 do_download_script() {
-  local remote_script_url local_dest
+  local remote_script_url local_dest result
   remote_script_url="$1"
   local_dest="$2"
 
+  # test if the file can be created
+  if [ ! -d $(dirname ${local_dest}) ]; then
+    echo "* [ERROR] Dir doesn't exist: $(dirname ${local_dest})" >&2
+    echo "          Please create it, before trying to save a file to it." >&2
+    return 1
+  fi
+
+  #echo "curl ${DOWNLOAD_COMMAND_OPTIONS} -o ${local_dest} ${remote_script_url}"
   curl ${DOWNLOAD_COMMAND_OPTIONS} -o "${local_dest}" "${remote_script_url}"
-  if [ $? -ne 0 ] || [ ! -f "${local_dest}" ]; then
+  result=$?
+  #echo "result: ${result}"
+  if [ ! -f "${local_dest}" ]; then
+    echo "* [ERROR] File cannot be created: ${local_dest}" >&2
+    echo "          Check file/dir permissions" >&2
+    return 1
+  elif [ $result -ne 0 ]; then
     echo "* [ERROR] ${APP_NAME} could not be downloaded from" >&2
     echo "          ${remote_script_url}" >&2
     return 1
@@ -597,17 +622,17 @@ do_download_script() {
 }
 
 download_script() {
-  local latest_script_version file_name remote_script_url
+  local latest_script_version remote_script_url file
+  file="${KEEP_DIR}/${APP_FILE_NAME}"
   
   echo "* Retrieving latest ${APP_NAME} release number..."
   latest_script_version=$(get_latest_script_version)
   test -z "${latest_script_version}" &&
     return 1
-  file_name="get-elixir.sh"
-  remote_script_url="${APP_URL}/raw/v${latest_script_version}/${file_name}"
+  remote_script_url="${APP_URL}/raw/v${latest_script_version}/${APP_FILE_NAME}"
 
-if [ -f "${KEEP_DIR}/${file_name}" ]; then
-  confirm "* You are about to replace '${KEEP_DIR}/${file_name}'.
+if [ -f "${file}" ]; then
+  confirm "* You are about to replace '${file}'.
   Do you confirm?"
 
   if [ $? -ne 0 ]; then
@@ -618,7 +643,7 @@ if [ -f "${KEEP_DIR}/${file_name}" ]; then
 fi
 
   echo "* Downloading ${remote_script_url}"
-  do_download_script "${remote_script_url}" "${KEEP_DIR}/${file_name}" ||
+  do_download_script "${remote_script_url}" "${file}" ||
     return 1
   return 0
 }
@@ -627,10 +652,10 @@ update_script() {
   local latest_script_version remote_script_url
 
   echo "* Retrieving latest ${APP_NAME} release number..."
-  latest_script_version=$(get_latest_script_version)
+  latest_script_version="$(get_latest_script_version)"
   test -z "${latest_script_version}" &&
     return 1
-  remote_script_url="${APP_URL}/raw/v${latest_script_version}/get-elixir.sh"
+  remote_script_url="${APP_URL}/raw/v${latest_script_version}/${APP_FILE_NAME}"
   
 if [ "${latest_script_version}" != "${APP_VERSION}" ]; then
   confirm "* You are about to replace '${SELF}'.
@@ -790,7 +815,7 @@ do_main() {
 
       local downloaded_script
       downloaded_script=$(get_message_downloaded "script")
-      echo "* [OK] ${downloaded_script}: ${KEEP_DIR}/get-elixir.sh"
+      echo "* [OK] ${downloaded_script}: ${KEEP_DIR}/${APP_FILE_NAME}"
       return 0
     ;;
     update-script)

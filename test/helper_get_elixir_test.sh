@@ -22,7 +22,7 @@ test_get_latest_release() {
   ${_ASSERT_TRUE_} $result
   ${_ASSERT_NOT_NULL_} '"${output}"'
 
-  ELIXIR_CSV_URL="http://localhost/foo.csv"
+  ELIXIR_CSV_URL="${URL_NOT_EXIST}"
   output="$(get_latest_release)"
   result=$?
   ${_ASSERT_FALSE_} $result
@@ -37,7 +37,7 @@ test_get_elixir_final_releases() {
   ${_ASSERT_TRUE_} $result
   ${_ASSERT_NOT_NULL_} '"${output}"'
 
-  ELIXIR_CSV_URL="http://localhost/foo.csv"
+  ELIXIR_CSV_URL="${URL_NOT_EXIST}"
   output="$(get_elixir_final_releases 2> /dev/null)"
   result=$?
   ${_ASSERT_FALSE_} $result
@@ -62,7 +62,7 @@ test_get_elixir_releases() {
   ${_ASSERT_TRUE_} $result
   ${_ASSERT_NOT_NULL_} '"${output}"'
 
-  APP_RELEASES_JSON_URL="http://localhost/foo.json"
+  APP_RELEASES_JSON_URL="${URL_NOT_EXIST}"
   output="$(get_elixir_releases 2> /dev/null)"
   result=$?
   ${_ASSERT_FALSE_} $result
@@ -87,7 +87,7 @@ test_get_latest_script_version() {
   ${_ASSERT_NOT_NULL_} '"${output}"'
 
   # URL exists, but it doesn't contain the data we need
-  APP_RELEASES_URL="http://localhost/foo/bar/"
+  APP_RELEASES_URL="${URL_NOT_EXIST}"
   output="$(get_latest_script_version 2> /dev/null)"
   result=$?
   ${_ASSERT_FALSE_} $result

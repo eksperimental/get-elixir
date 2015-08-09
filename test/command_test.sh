@@ -7,7 +7,7 @@
 
 test_short_help() {
   expected=$(short_help)
-  actual=$(../get-elixir.sh 2>&1)
+  actual=$("../${APP_FILE_NAME}" 2>&1)
   assertEquals "short_help" "${expected}" "${actual}" 
 }
 
