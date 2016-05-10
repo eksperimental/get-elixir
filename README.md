@@ -20,8 +20,10 @@ It is the aim of the project to provide a tool where no high-tecnical knowledge 
 
 Open you command line terminal and paste this:
 
+```sh
     curl -fLO https://github.com/eksperimental/get-elixir/raw/master/get-elixir.sh
     chmod +x get-elixir.sh
+```
 
 It will download and set the permissions to execute the script.
 
@@ -139,7 +141,7 @@ The script is POSIX compliant, so it it expected to run in any UNIX like operati
 
 ## Credits
 
-Created by **Eksperimental**.
+Created by **[Eksperimental](https://github.com/eksperimental)**.
 
 I usually contribute to various Elixir projects, and this is another way to continue doing that.
 
