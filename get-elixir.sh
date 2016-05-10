@@ -605,10 +605,8 @@ do_download_script() {
     return 1
   fi
 
-  #echo "curl ${DOWNLOAD_COMMAND_OPTIONS} -o ${local_dest} ${remote_script_url}"
   curl ${DOWNLOAD_COMMAND_OPTIONS} -o "${local_dest}" "${remote_script_url}"
   result=$?
-  #echo "result: ${result}"
   if [ ! -f "${local_dest}" ]; then
     echo "* [ERROR] File cannot be created: ${local_dest}" >&2
     echo "          Check file/dir permissions" >&2

@@ -241,7 +241,6 @@ test_do_download_script(){
   #CURL_OPTIONS="--connect-timeout 10 --retry 5"
   do_download_script "${script_url}" "${file}" 2> /dev/null
   result=$?
-  echo "result: ${result}"
   ${_ASSERT_TRUE_} $result
   ${_ASSERT_TRUE_} "'[ -f "${file}" ]'"
 
@@ -285,7 +284,6 @@ test_download_script() {
 
   download_script  2> /dev/null
   result=$?
-  echo "result: $result"
   # file cannot be created
   ${_ASSERT_FALSE_} $result
   ${_ASSERT_FALSE_} "'[ -f "${file}" ]'"

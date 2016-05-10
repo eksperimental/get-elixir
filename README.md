@@ -20,8 +20,10 @@ It is the aim of the project to provide a tool where no high-tecnical knowledge 
 
 Open you command line terminal and paste this:
 
+```sh
     curl -fLO https://github.com/eksperimental/get-elixir/raw/master/get-elixir.sh
     chmod +x get-elixir.sh
+```
 
 It will download and set the permissions to execute the script.
 
@@ -125,11 +127,11 @@ exenv rehash
 
 ## More information
 
-Please visit the [Elixir Website](http://elixir-lang.org/) for more information about the language itself, including for more information about [installing and compiling](elixir-lang.org/install.html) the it.
+Please visit the [Elixir Website](http://elixir-lang.org/) for more information about the language itself, including for more information about [installing and compiling](http://elixir-lang.org/install.html) the it.
 
 ## Contributing
 
-At this very early stage, [ideas are more than ever welcome]((https://github.com/eksperimental/get-elixir/issues/new).
+At this very early stage, [ideas are more than ever welcome](https://github.com/eksperimental/get-elixir/issues/new).
 
 If you think something is not working as expected, please [create a ticket](https://github.com/eksperimental/get-elixir/issues/new).
 
@@ -139,7 +141,7 @@ The script is POSIX compliant, so it it expected to run in any UNIX like operati
 
 ## Credits
 
-Created by **Eksperimental**.
+Created by **[Eksperimental](https://github.com/eksperimental)**.
 
 I usually contribute to various Elixir projects, and this is another way to continue doing that.
 
